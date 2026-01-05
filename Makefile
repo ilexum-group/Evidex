@@ -23,7 +23,7 @@ VERSION=1.0.0
 # Supported platforms (forensic tool must be portable)
 PLATFORMS := linux/amd64 linux/arm64 linux/arm darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 freebsd/amd64 openbsd/amd64
 
-.PHONY: all build clean test deps help fmt lint
+.PHONY: all build clean test deps help fmt lint vendor test-coverage test-race
 
 # Default target
 all: deps test build-all
@@ -36,6 +36,16 @@ deps:
 # Run tests
 test:
 	$(GOTEST) -v ./...
+
+# Run tests with race condition detection
+test-race:
+	$(GOTEST) -v -race ./...
+
+# Run tests with coverage
+test-coverage:
+	$(GOTEST) -v -race -covermode=atomic -coverprofile=coverage.out ./...
+	$(GOCMD) tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
 
 # Build for current platform
 build:
@@ -110,8 +120,12 @@ run: build
 # Update vendor directory
 vendor:
 	$(GOMOD) vendor
+	@echo "Vendor directory updated"
 
-# Format code
+# Verify vendor integrity
+verify-vendor:
+	$(GOMOD) verify
+	@echo "Vendor integrity verified"
 fmt:
 	$(GOCMD) fmt ./...
 
@@ -126,6 +140,8 @@ help:
 	@echo "  all              - Run deps, test, and build-all"
 	@echo "  deps             - Download and tidy dependencies"
 	@echo "  test             - Run tests"
+	@echo "  test-race        - Run tests with race condition detection"
+	@echo "  test-coverage    - Run tests with coverage reporting (generates coverage.html)"
 	@echo "  build            - Build for current platform"
 	@echo "  build-linux      - Build for Linux (amd64, arm64)"
 	@echo "  build-darwin     - Build for macOS (amd64, arm64)"
@@ -137,6 +153,7 @@ help:
 	@echo "  clean            - Clean build artifacts"
 	@echo "  run              - Build and run the binary"
 	@echo "  vendor           - Update vendor directory"
+	@echo "  verify-vendor    - Verify vendor integrity"
 	@echo "  fmt              - Format Go code"
 	@echo "  lint             - Lint Go code (requires golangci-lint)"
 	@echo "  help             - Show this help message"

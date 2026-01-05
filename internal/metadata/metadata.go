@@ -159,7 +159,9 @@ func isJPEG(filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	buf := make([]byte, 2)
 	if _, err := file.Read(buf); err != nil {
@@ -173,7 +175,9 @@ func isPNG(filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	buf := make([]byte, 8)
 	if _, err := file.Read(buf); err != nil {
@@ -187,7 +191,9 @@ func isGIF(filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	buf := make([]byte, 3)
 	if _, err := file.Read(buf); err != nil {
@@ -201,7 +207,9 @@ func isMP4(filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	buf := make([]byte, 8)
 	if _, err := file.ReadAt(buf, 4); err != nil {
@@ -215,7 +223,9 @@ func isMOV(filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	buf := make([]byte, 4)
 	if _, err := file.ReadAt(buf, 4); err != nil {
@@ -229,7 +239,9 @@ func isMKV(filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	buf := make([]byte, 4)
 	if _, err := file.Read(buf); err != nil {
@@ -243,7 +255,9 @@ func isAVI(filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	buf := make([]byte, 4)
 	if _, err := file.Read(buf); err != nil {
@@ -257,7 +271,9 @@ func isWebM(filePath string) bool {
 	if err != nil {
 		return false
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	buf := make([]byte, 4)
 	if _, err := file.Read(buf); err != nil {

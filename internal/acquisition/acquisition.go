@@ -50,9 +50,8 @@ func (a *Acquirer) AcquireFile(filePath string) error {
 	// Verify file exists
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
-		errMsg := fmt.Sprintf("File not found or inaccessible: %s", filePath)
 		a.logError("AcquireFile", filePath, err)
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("file not found or inaccessible: %s", filePath)
 	}
 
 	// Skip directories

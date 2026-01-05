@@ -246,7 +246,10 @@ func parseFlags() *Config {
 	_ = fs.Bool("h", false, "Show help message")
 	_ = fs.Bool("version", false, "Show version")
 
-	fs.Parse(os.Args[1:])
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing flags: %v\n", err)
+		os.Exit(1)
+	}
 
 	if *helpFlag {
 		fmt.Fprint(os.Stderr, usage)

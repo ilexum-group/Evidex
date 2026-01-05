@@ -128,7 +128,9 @@ func (pf *PackageFormatter) ExportCSV() error {
 	if err != nil {
 		return fmt.Errorf("failed to create CSV file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	// Write CSV header
 	header := "Filename,Source Path,Size (bytes),Modified Time,Hash (SHA-256),Verified,File Type,Owner\n"
@@ -323,7 +325,9 @@ func (pf *PackageFormatter) CompressPackage(compressionFormat string) error {
 	})
 
 	if err == nil {
-		os.WriteFile(listFile, []byte(list), 0644)
+		if err := os.WriteFile(listFile, []byte(list), 0644); err != nil {
+			return fmt.Errorf("failed to write file list: %w", err)
+		}
 	}
 
 	return nil

@@ -26,7 +26,8 @@ const (
 )
 
 var (
-	logEntries   []*models.LogEntry
+	logEntries []*models.LogEntry
+	//nolint:unused
 	logStartTime time.Time
 )
 
@@ -87,7 +88,9 @@ func CalculateSHA256(filePath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
@@ -103,7 +106,9 @@ func CalculateSHA512(filePath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	hash := sha512.New()
 	if _, err := io.Copy(hash, file); err != nil {
@@ -119,7 +124,9 @@ func CalculateMD5(filePath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 
 	hash := md5.New()
 	if _, err := io.Copy(hash, file); err != nil {
@@ -193,7 +200,9 @@ func IsReadOnly(filePath string) (bool, error) {
 		}
 		return false, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close() //nolint:errcheck
+	}()
 	return true, nil
 }
 
@@ -277,14 +286,18 @@ func SafeCopyFile(sourcePath, destinationPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open source: %w", err)
 	}
-	defer src.Close()
+	defer func() {
+		_ = src.Close() //nolint:errcheck
+	}()
 
 	// Create destination
 	dst, err := os.Create(destinationPath)
 	if err != nil {
 		return fmt.Errorf("failed to create destination: %w", err)
 	}
-	defer dst.Close()
+	defer func() {
+		_ = dst.Close() //nolint:errcheck
+	}()
 
 	// Copy contents
 	if _, err := io.Copy(dst, src); err != nil {

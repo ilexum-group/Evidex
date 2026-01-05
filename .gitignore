@@ -15,8 +15,8 @@
 # Go workspace file
 go.work
 
-# Dependency directories
-vendor/
+# Dependency directories (uncomment to ignore vendor)
+# vendor/
 
 # Build artifacts
 build/
