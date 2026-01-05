@@ -1,29 +1,33 @@
-# Evidex - Forensic Evidence Acquisition Binary
+# Evidex - Forensic Metadata Acquisition & Analysis Tool
 
-A portable, auditable forensic tool for multimedia file collection with complete chain of custody documentation. Designed for judicial proceedings with zero modifications to source evidence.
+A portable, auditable forensic tool for acquiring comprehensive metadata from all file types with complete chain of custody documentation and remote transmission for analysis. Designed for judicial proceedings with zero modifications to source evidence.
 
 ## Overview
 
-**Evidex** is a forensic evidence acquisition binary that collects image and video files while guaranteeing:
+**Evidex** is an exclusive metadata acquisition and analysis tool that collects detailed metadata from all types of files and transmits them to remote analysis servers while guaranteeing:
 
+- ✅ **Metadata-Only Collection**: Extracts comprehensive metadata from all file types without copying file content
 - ✅ **Zero Modifications**: Source files are NEVER modified, deleted, or moved
 - ✅ **Read-Only Access**: All operations use read-only file handles
 - ✅ **Cryptographic Integrity**: SHA-256 and SHA-512 hashing for verification
 - ✅ **Complete Chain of Custody**: Immutable custody documentation and audit trail
+- ✅ **Remote Analysis Ready**: Transmit metadata packages to analysis servers via secure HTTP endpoints
 - ✅ **Portable**: Cross-platform (Linux, macOS, Windows, FreeBSD, OpenBSD)
 - ✅ **Auditable**: Open source, no external dependencies
 - ✅ **Legally Defensible**: Compliant with ISO 27037 and NIST standards
 
 ## Key Features
 
+**Purpose**: Evidex is exclusively designed for metadata extraction and acquisition from all file types for forensic analysis and transmission to remote analysis platforms.
+
 | Feature Category | Description |
 |-----------------|-------------|
-| **Evidence Acquisition** | Acquire single files or entire directories with recursive directory traversal, batch processing of multiple paths, and non-destructive collection (read-only) |
-| **Metadata Extraction** | Filesystem metadata (timestamps, permissions, ownership), image metadata (EXIF, XMP, IPTC, GPS coordinates), video metadata (codec, duration, frame rate, bitrate, resolution), and automatic format detection (MIME types, magic bytes) |
+| **Metadata Extraction** | Comprehensive metadata from all file types, filesystem metadata (timestamps, permissions, ownership), image metadata (EXIF, XMP, IPTC, GPS coordinates), video metadata (codec, duration, frame rate, bitrate, resolution), document metadata (author, creation date, modification history), and automatic format detection (MIME types, magic bytes) |
+| **Evidence Acquisition** | Non-destructive metadata collection from single files or entire directories, recursive directory traversal, batch processing of multiple paths, read-only operations guarantee no source modification |
+| **Remote Analysis Transmission** | Direct transmission of metadata packages to analysis servers, secure HTTP/HTTPS endpoints with Bearer token authentication, RFC 5424 structured logging, intelligent chunking for large metadata sets, and transfer verification |
 | **Chain of Custody** | Unique evidence package identifier, complete custody history with timestamps, digital signature capability, examiner notes and case description, and transferable custody records |
 | **Cryptographic Verification** | Primary hash: SHA-256, secondary hash: SHA-512, hash-based integrity verification, collision-resistant algorithms, and industry-standard implementation |
-| **Output Formats** | **JSON** (complete metadata and manifest), **CSV** (file listing for analysis tools), **TXT** (human-readable hashes and reports), and **Original Files** (unmodified copies in package) |
-| **Comprehensive Logging** | Detailed acquisition operation log, system context capture, error and warning tracking, UTC and local timestamps, and timezone-aware recording |
+| **Output Formats** | **JSON** (complete metadata manifest), **CSV** (file listing for analysis tools), **TXT** (human-readable hashes and reports), and **RFC 5424 Logs** (structured syslog format for analysis servers) |
 
 ## Quick Start
 
@@ -44,21 +48,26 @@ make build-all
 ### Basic Usage
 
 ```bash
-# Acquire a single image file
+# Acquire metadata from a single file
 ./build/evidex -o ./evidence image.jpg
 
-# Acquire multiple files
-./build/evidex -o ./evidence photo1.jpg video1.mp4 photo2.jpg
+# Acquire metadata from multiple files  
+./build/evidex -o ./evidence photo1.jpg video1.mp4 document.pdf
 
-# Recursively acquire all files in a directory
+# Recursively acquire metadata from all files in a directory
 ./build/evidex -o ./evidence -r /path/to/folder
 
-# Acquire with case description
+# Acquire metadata with case description
 ./build/evidex -o ./evidence -desc "Case: ABC-2025-001" image.jpg
 
-# Use SHA-512 hashing
+# Use SHA-512 hashing for metadata verification
 ./build/evidex -o ./evidence -hash SHA-512 file.jpg
+
+# Acquire metadata and transmit to analysis server
+./build/evidex -o ./evidence -server https://analysis.server.com/api/evidence -token TOKEN image.jpg video.mp4
 ```
+
+**Note**: Evidex acquires comprehensive metadata from files (EXIF, file properties, codecs, etc.) for forensic analysis. Source files are never copied or modified - only metadata is extracted and transmitted.
 
 ### Command-Line Options
 
@@ -81,19 +90,29 @@ make build-all
 
 ### Remote Transmission
 
-Evidex can transmit evidence packages directly to a remote server endpoint:
+Evidex transmits extracted metadata packages directly to remote analysis server endpoints:
 
 ```bash
-# Acquire and transmit to server
-./build/evidex -o ./evidence -server https://evidence.server.com:8443/api/evidence -token YOUR_TOKEN image.jpg
+# Acquire metadata and transmit to analysis server
+./build/evidex -o ./evidence -server https://evidence-analysis.server.com:8443/api/evidence -token YOUR_TOKEN image.jpg
 
 # The tool will:
-# 1. Acquire files locally
-# 2. Create evidence package with complete chain of custody
-# 3. Intelligently chunk large files (64 MB chunks)
-# 4. Transmit with RFC 5424 logging
-# 5. Verify successful transmission
+# 1. Extract comprehensive metadata from all file types
+# 2. Create metadata package with complete chain of custody
+# 3. Include RFC 5424 structured logging with metadata details
+# 4. Intelligently chunk large metadata sets
+# 5. Transmit securely to analysis endpoint
+# 6. Verify successful transmission
+# 7. Source files remain unmodified at origin
 ```
+
+**Metadata Transmitted**:
+- File system metadata (permissions, timestamps, ownership, size)
+- Image metadata (EXIF, XMP, IPTC, GPS, color profiles)
+- Video metadata (codecs, resolution, bitrate, duration, frame rate)
+- Document metadata (author, creation date, modification history)
+- Archive metadata (compression type, member information)
+- Cryptographic hashes (SHA-256, SHA-512)
 
 ### Comprehensive Logging
 
@@ -339,9 +358,3 @@ Users are responsible for:
 - Proper storage and access control of evidence packages
 
 **Do not use for unauthorized access to files or systems.**
-
----
-
-**Version**: 1.0.0  
-**Status**: Production Ready  
-**Last Updated**: 2026-01-05
