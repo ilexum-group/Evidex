@@ -1,0 +1,201 @@
+// Package logger provides RFC 5424 compliant logging for Evidex
+package logger
+
+import (
+	"fmt"
+	"os"
+	"strconv"
+	"sync"
+	"time"
+)
+
+// LogLevel represents the severity of a log entry
+type LogLevel int
+
+const (
+	DebugLevel   LogLevel = 0 // Debug messages
+	InfoLevel    LogLevel = 1 // Informational messages
+	WarningLevel LogLevel = 2 // Warning messages
+	ErrorLevel   LogLevel = 3 // Error messages
+)
+
+// Logger defines the interface for logging operations
+type Logger interface {
+	LogInfo(message string, meta map[string]string)
+	LogWarn(message string, meta map[string]string)
+	LogError(message string, meta map[string]string)
+	LogDebug(message string, meta map[string]string)
+	GetLogs() []string
+	ClearLogs()
+}
+
+// RFC5424Logger implements Logger with RFC 5424 compliant syslog format
+type RFC5424Logger struct {
+	appName   string
+	hostname  string
+	processID string
+	mu        sync.Mutex
+	logs      []string
+}
+
+// NewLogger creates a new RFC 5424 compliant logger
+func NewLogger(appName string) (*RFC5424Logger, error) {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "localhost"
+	}
+
+	processID := strconv.Itoa(os.Getpid())
+
+	return &RFC5424Logger{
+		appName:   appName,
+		hostname:  hostname,
+		processID: processID,
+		logs:      make([]string, 0),
+	}, nil
+}
+
+// formatMessage creates an RFC 5424 formatted message
+func (l *RFC5424Logger) formatMessage(level LogLevel, message string, meta map[string]string) string {
+	// RFC 5424 format: <PRI>VERSION TIMESTAMP HOSTNAME TAG PID MSGID STRUCTURED_DATA MESSAGE
+	// We use facility 16 (local0) and severity level
+	priority := (16 << 3) | int(level)
+	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
+
+	// Build structured data from metadata
+	structuredData := "-"
+	if len(meta) > 0 {
+		structuredData = "[meta@1 "
+		for key, value := range meta {
+			// Escape special characters in value
+			escapedValue := fmt.Sprintf("%q", value)
+			structuredData += fmt.Sprintf("%s=%s ", key, escapedValue)
+		}
+		structuredData += "]"
+	}
+
+	// Format: <PRI>VERSION TIMESTAMP HOSTNAME APP-NAME PROCID MSGID STRUCTURED-DATA MSG
+	logLine := fmt.Sprintf("<%d>1 %s %s %s %s - %s %s",
+		priority, timestamp, l.hostname, l.appName, l.processID, structuredData, message)
+
+	return logLine
+}
+
+// LogInfo logs an informational message
+func (l *RFC5424Logger) LogInfo(message string, meta map[string]string) {
+	l.writeLog(Info, message, meta)
+}
+
+// LogWarn logs a warning message
+func (l *RFC5424Logger) LogWarn(message string, meta map[string]string) {
+	l.writeLog(Warning, message, meta)
+}
+
+// LogError logs an error message
+func (l *RFC5424Logger) LogError(message string, meta map[string]string) {
+	l.writeLog(Error, message, meta)
+}
+
+// LogDebug logs a debug message
+func (l *RFC5424Logger) LogDebug(message string, meta map[string]string) {
+	l.writeLog(Debug, message, meta)
+}
+
+// writeLog writes a log entry to stdout and captures it
+func (l *RFC5424Logger) writeLog(level LogLevel, message string, meta map[string]string) {
+	formattedLog := l.formatMessage(level, message, meta)
+
+	// Print to stdout
+	fmt.Println(formattedLog)
+
+	// Capture log in memory (thread-safe)
+	l.mu.Lock()
+	l.logs = append(l.logs, formattedLog)
+	l.mu.Unlock()
+}
+
+// GetLogs returns a copy of all captured logs
+func (l *RFC5424Logger) GetLogs() []string {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	logsCopy := make([]string, len(l.logs))
+	copy(logsCopy, l.logs)
+	return logsCopy
+}
+
+// ClearLogs clears the in-memory log buffer
+func (l *RFC5424Logger) ClearLogs() {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.logs = make([]string, 0)
+}
+
+// DefaultLogger is the global logger instance
+var DefaultLogger *RFC5424Logger
+
+// InitDefaultLogger initializes the global logger
+func InitDefaultLogger() error {
+	logger, err := NewLogger("Evidex")
+	if err != nil {
+		return err
+	}
+	DefaultLogger = logger
+	return nil
+}
+
+// Convenience functions using the global logger
+
+// LogInfo logs an informational message
+func LogInfo(message string, meta map[string]string) {
+	if DefaultLogger != nil {
+		DefaultLogger.LogInfo(message, meta)
+	}
+}
+
+// LogWarn logs a warning message
+func LogWarn(message string, meta map[string]string) {
+	if DefaultLogger != nil {
+		DefaultLogger.LogWarn(message, meta)
+	}
+}
+
+// LogError logs an error message
+func LogError(message string, meta map[string]string) {
+	if DefaultLogger != nil {
+		DefaultLogger.LogError(message, meta)
+	}
+}
+
+// LogDebug logs a debug message
+func LogDebug(message string, meta map[string]string) {
+	if DefaultLogger != nil {
+		DefaultLogger.LogDebug(message, meta)
+	}
+}
+
+// GetLogs returns logs from the default logger
+func GetLogs() []string {
+	if DefaultLogger != nil {
+		return DefaultLogger.GetLogs()
+	}
+	return []string{}
+}
+
+// ClearLogs clears logs from the default logger
+func ClearLogs() {
+	if DefaultLogger != nil {
+		DefaultLogger.ClearLogs()
+	}
+}
+
+// RFC5424 Severity levels
+const (
+	Emergency = 0
+	Alert     = 1
+	Critical  = 2
+	Error     = 3
+	Warning   = 4
+	Notice    = 5
+	Info      = 6
+	Debug     = 7
+)

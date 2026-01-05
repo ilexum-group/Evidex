@@ -14,6 +14,9 @@ type EvidencePackage struct {
 	SystemContext  *SystemContext          `json:"system_context"`
 	CreatedAt      time.Time               `json:"created_at"`
 	Version        string                  `json:"version"`
+	Logs           []string                `json:"logs"`       // RFC 5424 syslog entries
+	ServerURL      string                  `json:"server_url"` // Remote endpoint for transmission
+	AuthToken      string                  `json:"auth_token"` // Bearer token for server authentication
 }
 
 // ChainOfCustodyManifest records all actions and modifications to the evidence

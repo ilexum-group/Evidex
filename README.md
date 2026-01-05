@@ -75,6 +75,39 @@ make build-all
 -hashes                Create HASHES.txt file for verification
 -report                Create integrity report
 -verify                Verify hashes after acquisition (default: true)
+-server URL            Remote server endpoint for transmission
+-token TOKEN           Authentication token for server communication
+```
+
+### Remote Transmission
+
+Evidex can transmit evidence packages directly to a remote server endpoint:
+
+```bash
+# Acquire and transmit to server
+./build/evidex -o ./evidence -server https://evidence.server.com:8443/api/evidence -token YOUR_TOKEN image.jpg
+
+# The tool will:
+# 1. Acquire files locally
+# 2. Create evidence package with complete chain of custody
+# 3. Intelligently chunk large files (64 MB chunks)
+# 4. Transmit with RFC 5424 logging
+# 5. Verify successful transmission
+```
+
+### Comprehensive Logging
+
+All operations are logged using RFC 5424 syslog format with structured data:
+
+- **Log Output**: Real-time console output + in-memory buffer
+- **Format**: RFC 5424 compliant with metadata
+- **Transmission**: Logs included in evidence package for server
+- **Levels**: Debug, Info, Warning, Error
+- **Metadata**: Rich contextual information in each log entry
+
+Example log entry:
+```
+<134>1 2026-01-06T10:30:45.123456Z hostname evidex 1234 - [meta@1 file_path="/path/to/file" file_size="1024"] Successfully acquired file
 ```
 
 ## Building

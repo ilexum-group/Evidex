@@ -338,7 +338,7 @@ func CalculateFileHashes(filePath string, primaryAlg string) (*models.FileHashes
 	// Calculate SHA-512 (secondary)
 	sha512Hash, err := utils.CalculateSHA512(filePath)
 	if err != nil {
-		utils.LogWarning("SHA-512 calculation failed for file", filePath)
+		utils.LogWarn("SHA-512 calculation failed for file", map[string]string{"file": filePath, "error": err.Error()})
 	} else {
 		hashes.SHA512 = sha512Hash
 	}
@@ -346,7 +346,7 @@ func CalculateFileHashes(filePath string, primaryAlg string) (*models.FileHashes
 	// Calculate MD5 (for compatibility, not recommended for evidence)
 	md5Hash, err := utils.CalculateMD5(filePath)
 	if err != nil {
-		utils.LogWarning("MD5 calculation failed for file", filePath)
+		utils.LogWarn("MD5 calculation failed for file", map[string]string{"file": filePath, "error": err.Error()})
 	} else {
 		hashes.MD5 = md5Hash
 	}
