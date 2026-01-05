@@ -291,7 +291,6 @@ Designed and implemented as a professional forensic evidence acquisition tool.
 
 For issues, questions, or forensic consultation:
 - Review ARCHITECTURE.md for design details
-- Check troubleshooting section
 - Examine acquisition_log.json in generated packages
 - Review source code for implementation details
 
