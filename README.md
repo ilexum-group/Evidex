@@ -16,44 +16,14 @@ A portable, auditable forensic tool for multimedia file collection with complete
 
 ## Key Features
 
-### Evidence Acquisition
-- Acquire single files or entire directories
-- Recursive directory traversal
-- Batch processing of multiple paths
-- Non-destructive collection (read-only)
-
-### Metadata Extraction
-- Filesystem metadata (timestamps, permissions, ownership)
-- Image metadata (EXIF, XMP, IPTC, GPS coordinates)
-- Video metadata (codec, duration, frame rate, bitrate, resolution)
-- Automatic format detection (MIME types, magic bytes)
-
-### Chain of Custody
-- Unique evidence package identifier
-- Complete custody history with timestamps
-- Digital signature capability
-- Examiner notes and case description
-- Transferable custody records
-
-### Cryptographic Verification
-- Primary hash: SHA-256
-- Secondary hash: SHA-512
-- Hash-based integrity verification
-- Collision-resistant algorithms
-- Industry-standard implementation
-
-### Output Formats
-- **JSON**: Complete metadata and manifest
-- **CSV**: File listing for analysis tools
-- **TXT**: Human-readable hashes and reports
-- **Original Files**: Unmodified copies in package
-
-### Comprehensive Logging
-- Detailed acquisition operation log
-- System context capture
-- Error and warning tracking
-- UTC and local timestamps
-- Timezone-aware recording
+| Feature Category | Description |
+|-----------------|-------------|
+| **Evidence Acquisition** | Acquire single files or entire directories with recursive directory traversal, batch processing of multiple paths, and non-destructive collection (read-only) |
+| **Metadata Extraction** | Filesystem metadata (timestamps, permissions, ownership), image metadata (EXIF, XMP, IPTC, GPS coordinates), video metadata (codec, duration, frame rate, bitrate, resolution), and automatic format detection (MIME types, magic bytes) |
+| **Chain of Custody** | Unique evidence package identifier, complete custody history with timestamps, digital signature capability, examiner notes and case description, and transferable custody records |
+| **Cryptographic Verification** | Primary hash: SHA-256, secondary hash: SHA-512, hash-based integrity verification, collision-resistant algorithms, and industry-standard implementation |
+| **Output Formats** | **JSON** (complete metadata and manifest), **CSV** (file listing for analysis tools), **TXT** (human-readable hashes and reports), and **Original Files** (unmodified copies in package) |
+| **Comprehensive Logging** | Detailed acquisition operation log, system context capture, error and warning tracking, UTC and local timestamps, and timezone-aware recording |
 
 ## Quick Start
 
