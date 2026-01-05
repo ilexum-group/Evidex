@@ -195,16 +195,6 @@ func (a *Acquirer) GetEvidencePackage() *models.EvidencePackage {
 	a.acquisitionLog.EndTime = time.Now()
 	a.acquisitionLog.Duration = a.acquisitionLog.EndTime.Sub(a.acquisitionLog.StartTime).String()
 
-	// Convert log entry pointers to values
-	logPointers := utils.GetLogEntries()
-	entries := make([]models.LogEntry, len(logPointers))
-	for i, entry := range logPointers {
-		if entry != nil {
-			entries[i] = *entry
-		}
-	}
-	a.acquisitionLog.Entries = entries
-
 	manifest := createManifest(a.files, a.acquisitionLog)
 	systemContext := utils.GetSystemContext()
 
@@ -257,7 +247,9 @@ func createManifest(files []*models.FileEvidence, log *models.AcquisitionLog) *m
 
 // Logging helpers
 func (a *Acquirer) logInfo(operation, message string) {
-	utils.LogInfo(fmt.Sprintf("[%s] %s", operation, message), "")
+	utils.LogInfo(message, map[string]string{
+		"operation": operation,
+	})
 	entry := models.LogEntry{
 		Timestamp: time.Now(),
 		Level:     "INFO",
@@ -268,7 +260,9 @@ func (a *Acquirer) logInfo(operation, message string) {
 }
 
 func (a *Acquirer) logWarning(operation, message string) {
-	utils.LogWarning(fmt.Sprintf("[%s] %s", operation, message), "")
+	utils.LogWarn(message, map[string]string{
+		"operation": operation,
+	})
 	a.acquisitionLog.WarningCount++
 	entry := models.LogEntry{
 		Timestamp: time.Now(),
@@ -280,14 +274,21 @@ func (a *Acquirer) logWarning(operation, message string) {
 }
 
 func (a *Acquirer) logError(operation, message string, err error) {
-	utils.LogError(fmt.Sprintf("[%s] %s", operation, message), "", err)
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
+	utils.LogError(message, map[string]string{
+		"operation": operation,
+		"error":     errMsg,
+	})
 	a.acquisitionLog.ErrorCount++
 	entry := models.LogEntry{
 		Timestamp: time.Now(),
 		Level:     "ERROR",
 		Message:   message,
 		Details:   operation,
-		Error:     err.Error(),
+		Error:     errMsg,
 	}
 	a.acquisitionLog.Entries = append(a.acquisitionLog.Entries, entry)
 }

@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/evidex/internal/logger"
 	"github.com/evidex/internal/models"
 )
 
@@ -58,28 +59,24 @@ func Log(level LogLevel, message, details, errMsg string) {
 	}
 }
 
-// LogInfo logs an informational message
-func LogInfo(message, details string) {
-	Log(LogLevelInfo, message, details, "")
+// LogInfo logs an informational message with RFC 5424 format
+func LogInfo(message string, meta map[string]string) {
+	logger.LogInfo(message, meta)
 }
 
-// LogWarning logs a warning message
-func LogWarning(message, details string) {
-	Log(LogLevelWarning, message, details, "")
+// LogWarn logs a warning message with RFC 5424 format
+func LogWarn(message string, meta map[string]string) {
+	logger.LogWarn(message, meta)
 }
 
-// LogError logs an error message
-func LogError(message, details string, err error) {
-	errMsg := ""
-	if err != nil {
-		errMsg = err.Error()
-	}
-	Log(LogLevelError, message, details, errMsg)
+// LogError logs an error message with RFC 5424 format
+func LogError(message string, meta map[string]string) {
+	logger.LogError(message, meta)
 }
 
-// GetLogEntries returns all log entries
-func GetLogEntries() []*models.LogEntry {
-	return logEntries
+// LogDebug logs a debug message with RFC 5424 format
+func LogDebug(message string, meta map[string]string) {
+	logger.LogDebug(message, meta)
 }
 
 // CalculateSHA256 calculates SHA-256 hash of a file

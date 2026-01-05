@@ -85,12 +85,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	utils.LogInfo("Starting Evidex", fmt.Sprintf("Version %s", version))
-	utils.LogInfo("Output directory", cfg.OutputDir)
+	utils.LogInfo("Starting Evidex", map[string]string{"version": version})
+	utils.LogInfo("Output directory", map[string]string{"path": cfg.OutputDir})
 
 	// Create output directory
 	if err := utils.EnsureDirectory(cfg.OutputDir); err != nil {
-		utils.LogError("Failed to create output directory", cfg.OutputDir, err)
+		utils.LogError("Failed to create output directory", map[string]string{"path": cfg.OutputDir, "error": err.Error()})
 		os.Exit(1)
 	}
 
@@ -100,39 +100,39 @@ func main() {
 	// Set hash algorithm
 	if cfg.HashAlgorithm != "" {
 		acquirer.SetHashAlgorithm(cfg.HashAlgorithm)
-		utils.LogInfo("Hash algorithm", cfg.HashAlgorithm)
+		utils.LogInfo("Hash algorithm set", map[string]string{"algorithm": cfg.HashAlgorithm})
 	}
 
 	// Process input files/directories
 	for _, filePath := range cfg.FilePaths {
 		fileInfo, err := os.Stat(filePath)
 		if err != nil {
-			utils.LogError("File not found", filePath, err)
+			utils.LogError("File not found", map[string]string{"path": filePath, "error": err.Error()})
 			continue
 		}
 
 		if fileInfo.IsDir() {
-			utils.LogInfo("Processing directory", filePath)
+			utils.LogInfo("Processing directory", map[string]string{"path": filePath, "recursive": fmt.Sprintf("%v", cfg.Recursive)})
 			if err := acquirer.AcquireDirectory(filePath, cfg.Recursive); err != nil {
-				utils.LogError("Directory acquisition failed", filePath, err)
+				utils.LogError("Directory acquisition failed", map[string]string{"path": filePath, "error": err.Error()})
 			}
 		} else {
-			utils.LogInfo("Processing file", filePath)
+			utils.LogInfo("Processing file", map[string]string{"path": filePath})
 			if err := acquirer.AcquireFile(filePath); err != nil {
-				utils.LogError("File acquisition failed", filePath, err)
+				utils.LogError("File acquisition failed", map[string]string{"path": filePath, "error": err.Error()})
 			}
 		}
 	}
 
 	// Copy files to package
-	utils.LogInfo("Copying files to package", "")
+	utils.LogInfo("Copying files to package", map[string]string{})
 	if err := acquirer.CopyFilesToPackage(); err != nil {
-		utils.LogError("Failed to copy files", "", err)
+		utils.LogError("Failed to copy files", map[string]string{"error": err.Error()})
 		os.Exit(1)
 	}
 
 	// Build evidence package
-	utils.LogInfo("Building evidence package", "")
+	utils.LogInfo("Building evidence package", map[string]string{})
 	pkg := acquirer.GetEvidencePackage()
 
 	// Set manifest properties
@@ -147,42 +147,42 @@ func main() {
 	pkgFormatter := formatter.NewPackageFormatter(cfg.OutputDir, pkg)
 
 	if cfg.ExportJSON {
-		utils.LogInfo("Exporting JSON metadata", "")
+		utils.LogInfo("Exporting JSON metadata", map[string]string{})
 		if err := pkgFormatter.ExportJSON(); err != nil {
-			utils.LogError("JSON export failed", "", err)
+			utils.LogError("JSON export failed", map[string]string{"error": err.Error()})
 		}
 	}
 
 	if cfg.ExportCSV {
-		utils.LogInfo("Exporting CSV manifest", "")
+		utils.LogInfo("Exporting CSV manifest", map[string]string{})
 		if err := pkgFormatter.ExportCSV(); err != nil {
-			utils.LogError("CSV export failed", "", err)
+			utils.LogError("CSV export failed", map[string]string{"error": err.Error()})
 		}
 	}
 
 	if cfg.ExportHashes {
-		utils.LogInfo("Exporting hash file", "")
+		utils.LogInfo("Exporting hash file", map[string]string{})
 		if err := pkgFormatter.ExportHashes(); err != nil {
-			utils.LogError("Hashes export failed", "", err)
+			utils.LogError("Hashes export failed", map[string]string{"error": err.Error()})
 		}
 	}
 
 	if cfg.CreateReport {
-		utils.LogInfo("Creating integrity report", "")
+		utils.LogInfo("Creating integrity report", map[string]string{})
 		if err := pkgFormatter.ExportIntegrityReport(); err != nil {
-			utils.LogError("Integrity report failed", "", err)
+			utils.LogError("Integrity report failed", map[string]string{"error": err.Error()})
 		}
 	}
 
 	// Create README
-	utils.LogInfo("Creating package documentation", "")
+	utils.LogInfo("Creating package documentation", map[string]string{})
 	if err := pkgFormatter.CreateReadme(); err != nil {
-		utils.LogError("README creation failed", "", err)
+		utils.LogError("README creation failed", map[string]string{"error": err.Error()})
 	}
 
 	// Package compression info
 	if err := pkgFormatter.CompressPackage("tar.gz"); err != nil {
-		utils.LogWarning("Compression metadata failed", err.Error())
+		utils.LogWarn("Compression metadata failed", map[string]string{"error": err.Error()})
 	}
 
 	// Summary
@@ -207,7 +207,7 @@ func main() {
 	fmt.Printf("  Review manifest.json for chain of custody\n")
 	fmt.Printf("\n")
 
-	utils.LogInfo("Evidex acquisition completed", "successfully")
+	utils.LogInfo("Evidex acquisition completed", map[string]string{"status": "successfully"})
 }
 
 // parseFlags parses command-line flags
