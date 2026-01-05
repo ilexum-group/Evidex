@@ -77,65 +77,6 @@ make build-all
 -verify                Verify hashes after acquisition (default: true)
 ```
 
-## Output Package Structure
-
-```
-evidence_package/
-├── files/
-│   ├── image1.jpg
-│   ├── image2.png
-│   ├── video1.mp4
-│   └── ...
-│
-├── metadata/
-│   ├── manifest.json           # Chain of custody
-│   ├── acquisition_log.json    # Detailed operations
-│   ├── system_context.json     # System information
-│   ├── file_catalog.json       # File metadata
-│   └── file_manifest.csv       # CSV format
-│
-├── HASHES.txt                  # Hash verification
-├── INTEGRITY_REPORT.txt        # Integrity status
-├── README.txt                  # Documentation
-└── PACKAGE_CONTENTS.txt        # Package structure
-```
-
-## Files Explained
-
-### manifest.json
-Master chain of custody record containing:
-- Evidence ID (unique identifier)
-- Creation date and user
-- File count and total size
-- Hash algorithms used
-- Acquisition method
-- Custodian history
-- Evidence description and examiner notes
-
-### file_catalog.json
-Complete metadata for each acquired file:
-- File path and name
-- Size and timestamps
-- Permissions and ownership
-- Cryptographic hashes
-- Image/video specific metadata
-- Verification status
-
-### acquisition_log.json
-Detailed log of all acquisition operations:
-- Start and end times
-- Duration
-- Operation count
-- Error and warning counts
-- Individual log entries with timestamps
-
-### HASHES.txt
-Simple hash verification file for independent verification:
-- Evidence ID
-- File count and total size
-- Per-file hashes (SHA-256, SHA-512)
-- Suitable for hash database lookup
-
 ## Building
 
 ### Prerequisites
@@ -282,28 +223,6 @@ Evidex evidence packages are designed for legal admissibility by:
 - **Memory**: Minimal memory footprint (streaming hash calculation)
 - **Disk Space**: Requires space for original files + metadata
 - **Scaling**: Handles thousands of files efficiently
-
-## Troubleshooting
-
-### "Permission denied"
-- Ensure read access to source files
-- Run with appropriate privileges
-- Check file ownership and permissions
-
-### "Hash mismatch"
-- Verify source files haven't changed since acquisition
-- Re-run acquisition to regenerate hashes
-- Compare against original HASHES.txt
-
-### "Output directory not found"
-- Ensure parent directory exists
-- Create output directory manually
-- Check write permissions to output location
-
-### "Cannot open file"
-- Verify file path is correct
-- Check for symbolic links or shortcuts
-- Ensure sufficient disk space
 
 ## Configuration
 
