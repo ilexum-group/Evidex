@@ -16,44 +16,14 @@ A portable, auditable forensic tool for multimedia file collection with complete
 
 ## Key Features
 
-### Evidence Acquisition
-- Acquire single files or entire directories
-- Recursive directory traversal
-- Batch processing of multiple paths
-- Non-destructive collection (read-only)
-
-### Metadata Extraction
-- Filesystem metadata (timestamps, permissions, ownership)
-- Image metadata (EXIF, XMP, IPTC, GPS coordinates)
-- Video metadata (codec, duration, frame rate, bitrate, resolution)
-- Automatic format detection (MIME types, magic bytes)
-
-### Chain of Custody
-- Unique evidence package identifier
-- Complete custody history with timestamps
-- Digital signature capability
-- Examiner notes and case description
-- Transferable custody records
-
-### Cryptographic Verification
-- Primary hash: SHA-256
-- Secondary hash: SHA-512
-- Hash-based integrity verification
-- Collision-resistant algorithms
-- Industry-standard implementation
-
-### Output Formats
-- **JSON**: Complete metadata and manifest
-- **CSV**: File listing for analysis tools
-- **TXT**: Human-readable hashes and reports
-- **Original Files**: Unmodified copies in package
-
-### Comprehensive Logging
-- Detailed acquisition operation log
-- System context capture
-- Error and warning tracking
-- UTC and local timestamps
-- Timezone-aware recording
+| Feature Category | Description |
+|-----------------|-------------|
+| **Evidence Acquisition** | Acquire single files or entire directories with recursive directory traversal, batch processing of multiple paths, and non-destructive collection (read-only) |
+| **Metadata Extraction** | Filesystem metadata (timestamps, permissions, ownership), image metadata (EXIF, XMP, IPTC, GPS coordinates), video metadata (codec, duration, frame rate, bitrate, resolution), and automatic format detection (MIME types, magic bytes) |
+| **Chain of Custody** | Unique evidence package identifier, complete custody history with timestamps, digital signature capability, examiner notes and case description, and transferable custody records |
+| **Cryptographic Verification** | Primary hash: SHA-256, secondary hash: SHA-512, hash-based integrity verification, collision-resistant algorithms, and industry-standard implementation |
+| **Output Formats** | **JSON** (complete metadata and manifest), **CSV** (file listing for analysis tools), **TXT** (human-readable hashes and reports), and **Original Files** (unmodified copies in package) |
+| **Comprehensive Logging** | Detailed acquisition operation log, system context capture, error and warning tracking, UTC and local timestamps, and timezone-aware recording |
 
 ## Quick Start
 
@@ -106,65 +76,6 @@ make build-all
 -report                Create integrity report
 -verify                Verify hashes after acquisition (default: true)
 ```
-
-## Output Package Structure
-
-```
-evidence_package/
-├── files/
-│   ├── image1.jpg
-│   ├── image2.png
-│   ├── video1.mp4
-│   └── ...
-│
-├── metadata/
-│   ├── manifest.json           # Chain of custody
-│   ├── acquisition_log.json    # Detailed operations
-│   ├── system_context.json     # System information
-│   ├── file_catalog.json       # File metadata
-│   └── file_manifest.csv       # CSV format
-│
-├── HASHES.txt                  # Hash verification
-├── INTEGRITY_REPORT.txt        # Integrity status
-├── README.txt                  # Documentation
-└── PACKAGE_CONTENTS.txt        # Package structure
-```
-
-## Files Explained
-
-### manifest.json
-Master chain of custody record containing:
-- Evidence ID (unique identifier)
-- Creation date and user
-- File count and total size
-- Hash algorithms used
-- Acquisition method
-- Custodian history
-- Evidence description and examiner notes
-
-### file_catalog.json
-Complete metadata for each acquired file:
-- File path and name
-- Size and timestamps
-- Permissions and ownership
-- Cryptographic hashes
-- Image/video specific metadata
-- Verification status
-
-### acquisition_log.json
-Detailed log of all acquisition operations:
-- Start and end times
-- Duration
-- Operation count
-- Error and warning counts
-- Individual log entries with timestamps
-
-### HASHES.txt
-Simple hash verification file for independent verification:
-- Evidence ID
-- File count and total size
-- Per-file hashes (SHA-256, SHA-512)
-- Suitable for hash database lookup
 
 ## Building
 
@@ -313,28 +224,6 @@ Evidex evidence packages are designed for legal admissibility by:
 - **Disk Space**: Requires space for original files + metadata
 - **Scaling**: Handles thousands of files efficiently
 
-## Troubleshooting
-
-### "Permission denied"
-- Ensure read access to source files
-- Run with appropriate privileges
-- Check file ownership and permissions
-
-### "Hash mismatch"
-- Verify source files haven't changed since acquisition
-- Re-run acquisition to regenerate hashes
-- Compare against original HASHES.txt
-
-### "Output directory not found"
-- Ensure parent directory exists
-- Create output directory manually
-- Check write permissions to output location
-
-### "Cannot open file"
-- Verify file path is correct
-- Check for symbolic links or shortcuts
-- Ensure sufficient disk space
-
 ## Configuration
 
 No configuration file is needed. All options are command-line flags.
@@ -402,7 +291,6 @@ Designed and implemented as a professional forensic evidence acquisition tool.
 
 For issues, questions, or forensic consultation:
 - Review ARCHITECTURE.md for design details
-- Check troubleshooting section
 - Examine acquisition_log.json in generated packages
 - Review source code for implementation details
 
