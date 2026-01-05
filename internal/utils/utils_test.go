@@ -7,39 +7,39 @@ import (
 	"time"
 )
 
-// TestCalculateSHA256 tests SHA256 hash calculation
-func TestCalculateSHA256(t *testing.T) {
-	// Create temporary test file
+// createTempTestFile is a helper function to create temporary test files
+func createTempTestFile(t *testing.T, data []byte) string {
 	tmpfile, err := os.CreateTemp("", "test-*.txt")
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer func() {
-		if err := os.Remove(tmpfile.Name()); err != nil {
-			t.Logf("Failed to remove temp file: %v", err)
-		}
-	}()
-
-	testData := []byte("test data for hashing")
-	if _, err := tmpfile.Write(testData); err != nil {
+	if _, err := tmpfile.Write(data); err != nil {
 		t.Fatalf("Failed to write test data: %v", err)
 	}
 	if err := tmpfile.Close(); err != nil {
 		t.Logf("Failed to close temp file: %v", err)
 	}
+	t.Cleanup(func() {
+		if err := os.Remove(tmpfile.Name()); err != nil {
+			t.Logf("Failed to remove temp file: %v", err)
+		}
+	})
+	return tmpfile.Name()
+}
 
-	// Calculate hash
-	hash, err := CalculateSHA256(tmpfile.Name())
+// TestCalculateSHA256 tests SHA256 hash calculation
+func TestCalculateSHA256(t *testing.T) {
+	path := createTempTestFile(t, []byte("test data for hashing"))
+
+	hash, err := CalculateSHA256(path)
 	if err != nil {
 		t.Fatalf("CalculateSHA256() error = %v", err)
 	}
 
-	// Verify hash is non-empty
 	if hash == "" {
 		t.Error("Expected hash to be non-empty")
 	}
 
-	// Verify hash is 64 characters (SHA256 hex)
 	if len(hash) != 64 {
 		t.Errorf("Expected hash length 64, got %d", len(hash))
 	}
@@ -47,25 +47,9 @@ func TestCalculateSHA256(t *testing.T) {
 
 // TestCalculateSHA512 tests SHA512 hash calculation
 func TestCalculateSHA512(t *testing.T) {
-	tmpfile, err := os.CreateTemp("", "test-*.txt")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer func() {
-		if err := os.Remove(tmpfile.Name()); err != nil {
-			t.Logf("Failed to remove temp file: %v", err)
-		}
-	}()
+	path := createTempTestFile(t, []byte("test data for sha512"))
 
-	testData := []byte("test data for sha512")
-	if _, err := tmpfile.Write(testData); err != nil {
-		t.Fatalf("Failed to write test data: %v", err)
-	}
-	if err := tmpfile.Close(); err != nil {
-		t.Logf("Failed to close temp file: %v", err)
-	}
-
-	hash, err := CalculateSHA512(tmpfile.Name())
+	hash, err := CalculateSHA512(path)
 	if err != nil {
 		t.Fatalf("CalculateSHA512() error = %v", err)
 	}
@@ -74,7 +58,6 @@ func TestCalculateSHA512(t *testing.T) {
 		t.Error("Expected hash to be non-empty")
 	}
 
-	// SHA512 hex should be 128 characters
 	if len(hash) != 128 {
 		t.Errorf("Expected hash length 128, got %d", len(hash))
 	}
@@ -82,25 +65,9 @@ func TestCalculateSHA512(t *testing.T) {
 
 // TestCalculateMD5 tests MD5 hash calculation
 func TestCalculateMD5(t *testing.T) {
-	tmpfile, err := os.CreateTemp("", "test-*.txt")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-	defer func() {
-		if err := os.Remove(tmpfile.Name()); err != nil {
-			t.Logf("Failed to remove temp file: %v", err)
-		}
-	}()
+	path := createTempTestFile(t, []byte("test md5"))
 
-	testData := []byte("test md5")
-	if _, err := tmpfile.Write(testData); err != nil {
-		t.Fatalf("Failed to write test data: %v", err)
-	}
-	if err := tmpfile.Close(); err != nil {
-		t.Logf("Failed to close temp file: %v", err)
-	}
-
-	hash, err := CalculateMD5(tmpfile.Name())
+	hash, err := CalculateMD5(path)
 	if err != nil {
 		t.Fatalf("CalculateMD5() error = %v", err)
 	}
@@ -109,7 +76,6 @@ func TestCalculateMD5(t *testing.T) {
 		t.Error("Expected hash to be non-empty")
 	}
 
-	// MD5 hex should be 32 characters
 	if len(hash) != 32 {
 		t.Errorf("Expected hash length 32, got %d", len(hash))
 	}
