@@ -1,0 +1,41 @@
+# Evidex Go Linting Configuration
+# Compatible with golangci-lint
+
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters:
+  enable:
+    - errcheck         # Errcheck is a program for finding unchecked errors
+    - gosimple         # Linter for Go source code that specializes on simplifying code
+    - govet            # Vet examines Go source code
+    - ineffassign      # Detects when assignments to existing variables are not needed
+    - staticcheck       # Staticcheck is a go vet on steroids
+    - typecheck         # Like the front-end of a Go compiler
+    - unused           # Checks Go code for unused constants, variables, functions and types
+    - gofmt            # Gofmt checks whether code was gofmted
+    - goimports        # Goimports does everything that gofmt does
+    - gocritic         # The most opinionated Go source code linter
+    - misspell         # Finds commonly misspelled English words
+    - golint           # Golint is a linter for Go source code
+    - revive           # Fast, configurable, extensible, flexible, and pretty Go linter
+
+  disable-all: false
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - unused
+        - ineffassign
+    - linters:
+        - gosimple
+      text: "should use simple strings"
