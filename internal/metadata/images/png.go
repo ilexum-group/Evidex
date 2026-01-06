@@ -33,12 +33,7 @@ func (e *PNGExtractor) GetType() string {
 
 // ExtractImage extracts PNG-specific metadata
 func (e *PNGExtractor) ExtractImage(filePath string) (*models.ImageMetadata, error) {
-	metadata := &models.ImageMetadata{
-		Format: "PNG",
-		EXIF:   make(map[string]string),
-		XMP:    make(map[string]string),
-		IPTC:   make(map[string]string),
-	}
+	metadata := &models.ImageMetadata{Format: "PNG"}
 
 	// Get basic image dimensions
 	file, err := os.Open(filePath)

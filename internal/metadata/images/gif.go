@@ -33,12 +33,7 @@ func (e *GIFExtractor) GetType() string {
 
 // ExtractImage extracts GIF-specific metadata
 func (e *GIFExtractor) ExtractImage(filePath string) (*models.ImageMetadata, error) {
-	metadata := &models.ImageMetadata{
-		Format: "GIF",
-		EXIF:   make(map[string]string),
-		XMP:    make(map[string]string),
-		IPTC:   make(map[string]string),
-	}
+	metadata := &models.ImageMetadata{Format: "GIF"}
 
 	// Get basic image dimensions
 	file, err := os.Open(filePath)

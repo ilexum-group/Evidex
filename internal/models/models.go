@@ -84,28 +84,11 @@ type FileHashes struct {
 }
 
 // ImageMetadata contains image-specific metadata
+// Reduced to the fields we currently populate.
 type ImageMetadata struct {
-	Format       string            `json:"format"`         // Image format (JPEG, PNG, etc.)
-	Width        int               `json:"width"`          // Image width in pixels
-	Height       int               `json:"height"`         // Image height in pixels
-	ColorSpace   string            `json:"color_space"`    // Color space (RGB, CMYK, etc.)
-	BitDepth     int               `json:"bit_depth"`      // Bits per channel
-	EXIF         map[string]string `json:"exif,omitempty"` // EXIF metadata
-	XMP          map[string]string `json:"xmp,omitempty"`  // XMP metadata
-	IPTC         map[string]string `json:"iptc,omitempty"` // IPTC metadata
-	GPS          *GPSCoordinates   `json:"gps,omitempty"`  // GPS coordinates if present
-	CameraModel  string            `json:"camera_model"`   // Camera model
-	LensMake     string            `json:"lens_make"`      // Lens manufacturer
-	ExposureTime string            `json:"exposure_time"`  // Exposure time
-	FNumber      string            `json:"f_number"`       // F-number
-	ISO          int               `json:"iso"`            // ISO sensitivity
-	FocalLength  string            `json:"focal_length"`   // Focal length
-	DateTime     time.Time         `json:"date_time"`      // Photo date/time
-	Software     string            `json:"software"`       // Software used
-	Copyright    string            `json:"copyright"`      // Copyright info
-	Artist       string            `json:"artist"`         // Artist/photographer
-	Description  string            `json:"description"`    // Image description
-	Keywords     []string          `json:"keywords"`       // Keywords/tags
+	Format string `json:"format"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
 }
 
 // GPSCoordinates represents GPS location data
