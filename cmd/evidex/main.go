@@ -9,6 +9,7 @@ import (
 
 	"github.com/evidex/internal/acquisition"
 	"github.com/evidex/internal/formatter"
+	"github.com/evidex/internal/sender"
 	"github.com/evidex/internal/utils"
 )
 
@@ -23,7 +24,7 @@ Usage:
 Options:
   -h, -help              Show this help message
   -v, -version           Show version information
-  -o, -output DIR        Output directory for evidence package (required)
+  -o, -output DIR        Output directory for evidence package (required for debug mode, optional for production mode with -send)
   -r, -recursive         Recursively process directories
   -hash ALGORITHM        Hash algorithm: SHA256 (default), SHA512
   -desc DESCRIPTION      Evidence description for manifest
@@ -33,6 +34,9 @@ Options:
   -hashes                Create HASHES.txt file for verification
   -report                Create integrity report
   -verify                Verify hashes after acquisition (default: true)
+  -send                  Send evidence package to remote server
+  -server URL            Remote server endpoint URL
+  -token TOKEN           Authentication token for remote server
 
 Examples:
   # Acquire a single image file
@@ -49,6 +53,12 @@ Examples:
 
   # Acquire with SHA-512 hashing
   evidex -o ./evidence -hash SHA512 file.jpg
+
+  # Production mode: Send to server without local storage
+  evidex -send -server https://server.com/api/evidence -token TOKEN image.jpg
+
+  # Debug mode: Save locally only (no transmission)
+  evidex -o ./evidence image.jpg
 
 Chain of Custody:
   All evidence is acquired in read-only mode without any modifications.
@@ -70,6 +80,9 @@ type Config struct {
 	ExportHashes  bool
 	CreateReport  bool
 	VerifyAfter   bool
+	SendToServer  bool
+	ServerURL     string
+	AuthToken     string
 }
 
 func main() {
@@ -86,16 +99,41 @@ func main() {
 	}
 
 	utils.LogInfo("Starting Evidex", map[string]string{"version": version})
-	utils.LogInfo("Output directory", map[string]string{"path": cfg.OutputDir})
 
-	// Create output directory
-	if err := utils.EnsureDirectory(cfg.OutputDir); err != nil {
-		utils.LogError("Failed to create output directory", map[string]string{"path": cfg.OutputDir, "error": err.Error()})
+	// Determine working directory
+	workingDir := cfg.OutputDir
+	useTemporaryDir := false
+
+	// Production mode: use temporary directory if -o not specified
+	if cfg.OutputDir == "" && cfg.SendToServer {
+		tmpDir, err := os.MkdirTemp("", "evidex-*")
+		if err != nil {
+			utils.LogError("Failed to create temporary directory", map[string]string{"error": err.Error()})
+			os.Exit(1)
+		}
+		workingDir = tmpDir
+		useTemporaryDir = true
+		utils.LogInfo("Production mode: using temporary directory", map[string]string{"path": workingDir})
+		defer func() {
+			if useTemporaryDir {
+				utils.LogInfo("Cleaning up temporary directory", map[string]string{"path": workingDir})
+				if err := os.RemoveAll(workingDir); err != nil {
+					utils.LogWarn("Failed to remove temporary directory", map[string]string{"path": workingDir, "error": err.Error()})
+				}
+			}
+		}()
+	} else {
+		utils.LogInfo("Debug mode: using output directory", map[string]string{"path": workingDir})
+	}
+
+	// Create working directory
+	if err := utils.EnsureDirectory(workingDir); err != nil {
+		utils.LogError("Failed to create working directory", map[string]string{"path": workingDir, "error": err.Error()})
 		os.Exit(1)
 	}
 
 	// Create acquirer
-	acquirer := acquisition.NewAcquirer(cfg.OutputDir)
+	acquirer := acquisition.NewAcquirer(workingDir)
 
 	// Set hash algorithm
 	if cfg.HashAlgorithm != "" {
@@ -144,7 +182,7 @@ func main() {
 	}
 
 	// Export formats
-	pkgFormatter := formatter.NewPackageFormatter(cfg.OutputDir, pkg)
+	pkgFormatter := formatter.NewPackageFormatter(workingDir, pkg)
 
 	if cfg.ExportJSON {
 		utils.LogInfo("Exporting JSON metadata", map[string]string{})
@@ -193,7 +231,12 @@ func main() {
 	fmt.Printf("Evidence ID: %s\n", pkg.Manifest.ID)
 	fmt.Printf("Files Acquired: %d\n", pkg.Manifest.FileCount)
 	fmt.Printf("Total Size: %d bytes\n", pkg.Manifest.TotalSize)
-	fmt.Printf("Output Directory: %s\n", cfg.OutputDir)
+	if useTemporaryDir {
+		fmt.Printf("Mode: Production (no local storage)\n")
+	} else {
+		fmt.Printf("Output Directory: %s\n", cfg.OutputDir)
+		fmt.Printf("Mode: Debug (local storage)\n")
+	}
 	fmt.Printf("Hash Algorithm: %s\n", pkg.Manifest.HashAlgorithm)
 	fmt.Printf("Acquisition Status: %s\n", pkg.Manifest.Integrity)
 	fmt.Printf("\nPackage Contents:\n")
@@ -206,6 +249,31 @@ func main() {
 	fmt.Printf("  Compare file hashes with HASHES.txt\n")
 	fmt.Printf("  Review manifest.json for chain of custody\n")
 	fmt.Printf("\n")
+
+	// Send to remote server if requested
+	if cfg.SendToServer {
+		if cfg.ServerURL == "" {
+			utils.LogError("Server URL is required when -send is specified", map[string]string{})
+			fmt.Fprintf(os.Stderr, "Error: -server flag is required when using -send\n")
+			os.Exit(1)
+		}
+
+		fmt.Printf("\n")
+		fmt.Printf("================================\n")
+		fmt.Printf("SENDING EVIDENCE TO SERVER\n")
+		fmt.Printf("================================\n")
+		fmt.Printf("Server URL: %s\n", cfg.ServerURL)
+		utils.LogInfo("Sending evidence package to server", map[string]string{"url": cfg.ServerURL})
+
+		if err := sender.SendEvidencePackage(cfg.ServerURL, cfg.AuthToken, pkg); err != nil {
+			utils.LogError("Failed to send evidence package", map[string]string{"error": err.Error()})
+			fmt.Printf("\n❌ Failed to send: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("\n✅ Evidence package sent successfully!\n")
+		utils.LogInfo("Evidence package sent successfully", map[string]string{"status": "success"})
+	}
 
 	utils.LogInfo("Evidex acquisition completed", map[string]string{"status": "successfully"})
 }
@@ -239,6 +307,9 @@ func parseFlags() *Config {
 	fs.BoolVar(&cfg.ExportHashes, "hashes", true, "Export hash file")
 	fs.BoolVar(&cfg.CreateReport, "report", true, "Create integrity report")
 	fs.BoolVar(&cfg.VerifyAfter, "verify", true, "Verify hashes")
+	fs.BoolVar(&cfg.SendToServer, "send", false, "Send evidence package to remote server")
+	fs.StringVar(&cfg.ServerURL, "server", "", "Remote server endpoint URL")
+	fs.StringVar(&cfg.AuthToken, "token", "", "Authentication token for remote server")
 
 	// Handle help and version
 	helpFlag := fs.Bool("help", false, "Show help message")
@@ -269,8 +340,19 @@ func parseFlags() *Config {
 
 // validateConfig validates the configuration
 func validateConfig(cfg *Config) error {
-	if cfg.OutputDir == "" {
-		return fmt.Errorf("output directory (-o) is required")
+	// -send and -o are mutually exclusive
+	if cfg.SendToServer && cfg.OutputDir != "" {
+		return fmt.Errorf("cannot use -send and -o together: use -send for production mode (remote transmission) or -o for debug mode (local storage only)")
+	}
+
+	// Output directory is required unless sending to server (production mode)
+	if cfg.OutputDir == "" && !cfg.SendToServer {
+		return fmt.Errorf("output directory (-o) is required in debug mode (or use -send for production mode)")
+	}
+
+	// When sending to server, validate server URL
+	if cfg.SendToServer && cfg.ServerURL == "" {
+		return fmt.Errorf("server URL (-server) is required when using -send")
 	}
 
 	if len(cfg.FilePaths) == 0 {

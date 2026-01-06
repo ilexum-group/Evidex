@@ -21,6 +21,8 @@ go.work
 # Build artifacts
 build/
 dist/
+tmp/
+evidence_test/
 
 # IDE
 .idea/
