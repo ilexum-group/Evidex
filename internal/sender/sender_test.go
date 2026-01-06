@@ -81,7 +81,8 @@ func TestSendEvidencePackage(t *testing.T) {
 	}
 
 	// Send package
-	err := SendEvidencePackage(server.URL, "test-token", pkg)
+	snd := NewSender(server.URL, "test-token")
+	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("SendEvidencePackage() error = %v", err)
 	}
@@ -110,7 +111,8 @@ func TestSendEvidenceFile(t *testing.T) {
 
 	// Send file
 	meta := map[string]string{"filename": filepath.Base(testFilePath)}
-	err := SendEvidenceFile(server.URL, "test-token", testFilePath, meta)
+	snd := NewSender(server.URL, "test-token")
+	err := snd.SendEvidenceFile(testFilePath, meta)
 	if err != nil {
 		t.Fatalf("SendEvidenceFile() error = %v", err)
 	}
@@ -123,7 +125,8 @@ func TestSendEvidencePackageInvalidEndpoint(t *testing.T) {
 	}
 
 	// Try to send to invalid URL
-	err := SendEvidencePackage("http://invalid-url-that-does-not-exist:9999", "token", pkg)
+	snd := NewSender("http://invalid-url-that-does-not-exist:9999", "token")
+	err := snd.SendEvidencePackage(pkg)
 	if err == nil {
 		t.Error("Expected error for invalid endpoint")
 	}
@@ -137,7 +140,8 @@ func TestSendEvidenceFileNotFound(t *testing.T) {
 	defer server.Close()
 
 	meta := map[string]string{}
-	err := SendEvidenceFile(server.URL, "token", "/non/existent/file.txt", meta)
+	snd := NewSender(server.URL, "token")
+	err := snd.SendEvidenceFile("/non/existent/file.txt", meta)
 	if err == nil {
 		t.Error("Expected error for non-existent file")
 	}
@@ -155,7 +159,8 @@ func TestSendEvidencePackageServerError(t *testing.T) {
 		Version: "1.0",
 	}
 
-	err := SendEvidencePackage(server.URL, "token", pkg)
+	snd := NewSender(server.URL, "token")
+	err := snd.SendEvidencePackage(pkg)
 	if err == nil {
 		t.Error("Expected error for server error response")
 	}
@@ -185,7 +190,8 @@ func TestSendEvidencePackageWithLogs(t *testing.T) {
 		Version: "1.0",
 	}
 
-	err := SendEvidencePackage(server.URL, "test-token", pkg)
+	snd := NewSender(server.URL, "test-token")
+	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("SendEvidencePackage() error = %v", err)
 	}
@@ -215,7 +221,8 @@ func TestSendEvidenceFileWithMetadata(t *testing.T) {
 		"file_hash": "abc123",
 	}
 
-	err := SendEvidenceFile(server.URL, "token", testFilePath, meta)
+	snd := NewSender(server.URL, "token")
+	err := snd.SendEvidenceFile(testFilePath, meta)
 	if err != nil {
 		t.Fatalf("SendEvidenceFile() with metadata error = %v", err)
 	}
@@ -241,7 +248,8 @@ func TestSendHTTPRequest(t *testing.T) {
 	pkg := &models.EvidencePackage{
 		Version: "1.0",
 	}
-	err := SendEvidencePackage(server.URL, "token", pkg)
+	snd := NewSender(server.URL, "token")
+	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("Error sending request: %v", err)
 	}
@@ -274,7 +282,8 @@ func TestSendEvidencePackageWithComplexPayload(t *testing.T) {
 		},
 	}
 
-	err := SendEvidencePackage(server.URL, "test-token", pkg)
+	snd := NewSender(server.URL, "test-token")
+	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("SendEvidencePackage() error = %v", err)
 	}
@@ -309,7 +318,8 @@ func TestSendEvidencePackageResponseValidation(t *testing.T) {
 	pkg := &models.EvidencePackage{Version: "1.0"}
 
 	// This should succeed
-	err := SendEvidencePackage(server.URL, "token", pkg)
+	snd := NewSender(server.URL, "token")
+	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("Expected successful response, got error: %v", err)
 	}
@@ -353,7 +363,8 @@ func TestSendLargeFile(t *testing.T) {
 	defer server.Close()
 
 	meta := map[string]string{"chunk_test": "true"}
-	err := SendEvidenceFile(server.URL, "token", testFilePath, meta)
+	snd := NewSender(server.URL, "token")
+	err := snd.SendEvidenceFile(testFilePath, meta)
 	if err != nil {
 		t.Fatalf("SendEvidenceFile() error = %v", err)
 	}
@@ -383,7 +394,8 @@ func TestSendEvidenceFileResponseParsing(t *testing.T) {
 	defer server.Close()
 
 	meta := map[string]string{}
-	err := SendEvidenceFile(server.URL, "token", testFilePath, meta)
+	snd := NewSender(server.URL, "token")
+	err := snd.SendEvidenceFile(testFilePath, meta)
 	if err != nil {
 		t.Fatalf("SendEvidenceFile() error = %v", err)
 	}
@@ -402,8 +414,10 @@ func BenchmarkSendEvidencePackage(b *testing.B) {
 		Logs:    []string{"Log 1", "Log 2", "Log 3"},
 	}
 
+	snd := NewSender(server.URL, "token")
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = SendEvidencePackage(server.URL, "token", pkg)
+		_ = snd.SendEvidencePackage(pkg)
 	}
 }
