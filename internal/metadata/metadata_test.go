@@ -3,6 +3,8 @@ package metadata
 import (
 	"os"
 	"testing"
+
+	"github.com/evidex/internal/models"
 )
 
 // TestExtractFileMetadata tests metadata extraction for regular files
@@ -95,7 +97,7 @@ func TestCalculateFileHashes(t *testing.T) {
 		t.Fatalf("Failed to write test data: %v", err)
 	}
 
-	hashes, err := CalculateFileHashes(tmpfile.Name(), "SHA-256")
+	hashes, err := CalculateFileHashes(tmpfile.Name())
 	if err != nil {
 		t.Fatalf("CalculateFileHashes() error = %v", err)
 	}
@@ -134,26 +136,23 @@ func TestVerifyFileIntegrity(t *testing.T) {
 		t.Fatalf("Failed to write test data: %v", err)
 	}
 
-	hashes, err := CalculateFileHashes(tmpfile.Name(), "SHA-256")
+	hashes, err := CalculateFileHashes(tmpfile.Name())
 	if err != nil {
 		t.Fatalf("Failed to calculate hashes: %v", err)
 	}
 
 	// Test with correct hash
-	verified, err := VerifyFileIntegrity(tmpfile.Name(), hashes.SHA256)
+	err = VerifyFileIntegrity(tmpfile.Name(), hashes)
 	if err != nil {
-		t.Fatalf("VerifyFileIntegrity() error = %v", err)
-	}
-	if !verified {
 		t.Error("Expected file integrity verification to succeed with correct hash")
 	}
 
 	// Test with incorrect hash
-	verified, err = VerifyFileIntegrity(tmpfile.Name(), "0000000000000000000000000000000000000000000000000000000000000000")
-	if err != nil {
-		t.Fatalf("VerifyFileIntegrity() error = %v", err)
+	wrongHashes := &models.FileHashes{
+		SHA256: "0000000000000000000000000000000000000000000000000000000000000000",
 	}
-	if verified {
+	err = VerifyFileIntegrity(tmpfile.Name(), wrongHashes)
+	if err == nil {
 		t.Error("Expected file integrity verification to fail with incorrect hash")
 	}
 }
