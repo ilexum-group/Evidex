@@ -4,9 +4,9 @@ A portable, auditable forensic tool for acquiring comprehensive metadata from al
 
 ## Overview
 
-**Evidex** is an exclusive metadata acquisition and analysis tool that collects detailed metadata from all types of files and transmits them to remote analysis servers while guaranteeing:
+**Evidex** is a forensic evidence acquisition tool that collects files and their metadata for transmission to remote analysis servers while guaranteeing:
 
-- ✅ **Metadata-Only Collection**: Extracts comprehensive metadata from all file types without copying file content
+- ✅ **Complete Evidence Package**: Transmits file content and comprehensive metadata to remote servers
 - ✅ **Zero Modifications**: Source files are NEVER modified, deleted, or moved
 - ✅ **Read-Only Access**: All operations use read-only file handles
 - ✅ **Cryptographic Integrity**: SHA-256 and SHA-512 hashing for verification
@@ -23,8 +23,8 @@ A portable, auditable forensic tool for acquiring comprehensive metadata from al
 | Feature Category | Description |
 |-----------------|-------------|
 | **Metadata Extraction** | Comprehensive metadata from all file types, filesystem metadata (timestamps, permissions, ownership), image metadata (EXIF, XMP, IPTC, GPS coordinates), video metadata (codec, duration, frame rate, bitrate, resolution), document metadata (author, creation date, modification history), and automatic format detection (MIME types, magic bytes) |
-| **Evidence Acquisition** | Non-destructive metadata collection from single files or entire directories, recursive directory traversal, batch processing of multiple paths, read-only operations guarantee no source modification |
-| **Remote Analysis Transmission** | Direct transmission of metadata packages to analysis servers, secure HTTP/HTTPS endpoints with Bearer token authentication, RFC 5424 structured logging, intelligent chunking for large metadata sets, and transfer verification |
+| **Evidence Acquisition** | Non-destructive evidence collection from single files or entire directories, recursive directory traversal, batch processing of multiple paths, read-only operations guarantee no source modification |
+| **Remote Analysis Transmission** | Direct transmission of complete evidence packages (file content + metadata) to analysis servers, secure HTTP/HTTPS endpoints with Bearer token authentication, RFC 5424 structured logging, intelligent chunking for large files, and transfer verification |
 | **Chain of Custody** | Unique evidence package identifier, complete custody history with timestamps, digital signature capability, examiner notes and case description, and transferable custody records |
 | **Cryptographic Verification** | Primary hash: SHA-256, secondary hash: SHA-512, hash-based integrity verification, collision-resistant algorithms, and industry-standard implementation |
 | **Output Formats** | **JSON** (complete metadata manifest), **CSV** (file listing for analysis tools), **TXT** (human-readable hashes and reports), and **RFC 5424 Logs** (structured syslog format for analysis servers) |
@@ -47,34 +47,64 @@ make build-all
 
 ### Basic Usage
 
+#### Production Mode (Recommended)
+
+In production mode, evidence is transmitted directly to remote servers **without writing to local disk**:
+
 ```bash
-# Acquire metadata from a single file
-./build/evidex -o ./evidence image.jpg
+# Acquire and transmit evidence to analysis server
+./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN image.jpg
 
-# Acquire metadata from multiple files  
-./build/evidex -o ./evidence photo1.jpg video1.mp4 document.pdf
+# Process multiple files
+./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN file1.jpg file2.mp4
 
-# Recursively acquire metadata from all files in a directory
-./build/evidex -o ./evidence -r /path/to/folder
+# Process entire directory recursively
+./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -r /path/to/folder
 
-# Acquire metadata with case description
-./build/evidex -o ./evidence -desc "Case: ABC-2025-001" image.jpg
-
-# Use SHA-512 hashing for metadata verification
-./build/evidex -o ./evidence -hash SHA-512 file.jpg
-
-# Acquire metadata and transmit to analysis server
-./build/evidex -o ./evidence -server https://analysis.server.com/api/evidence -token TOKEN image.jpg video.mp4
+# With case description
+./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -desc "Case: ABC-2025-001" evidence.jpg
 ```
 
-**Note**: Evidex acquires comprehensive metadata from files (EXIF, file properties, codecs, etc.) for forensic analysis. Source files are never copied or modified - only metadata is extracted and transmitted.
+**Production Mode Benefits**:
+- No local storage required (uses temporary directory, auto-cleaned)
+- Direct transmission to analysis server
+- Minimal forensic footprint on acquisition system
+- Ideal for field operations
+
+#### Debug Mode (Local Storage Only)
+
+In debug mode, evidence is saved locally only (no transmission):
+
+```bash
+# Save evidence package locally
+./build/evidex -o ./evidence image.jpg
+
+# Process multiple files with local storage
+./build/evidex -o ./evidence photo1.jpg video1.mp4 document.pdf
+
+# Recursively process directory with local storage
+./build/evidex -o ./evidence -r /path/to/folder
+
+# Use SHA-512 hashing
+./build/evidex -o ./evidence -hash SHA-512 file.jpg
+```
+
+**Debug Mode Benefits**:
+- Local copy for validation
+- Offline operation support
+- Evidence package inspection
+- Testing and development
+
+**Note**: Evidex acquires complete files and comprehensive metadata (EXIF, file properties, codecs, etc.) for forensic analysis. Source files are **never modified** - only read in a non-destructive manner.
+
+**Important**: The `-send` and `-o` flags are mutually exclusive. Use `-send` for production (remote transmission) or `-o` for debug (local storage only).
 
 ### Command-Line Options
 
 ```
 -h, -help              Show help message
 -v, -version           Show version information
--o, -output DIR        Output directory for evidence package (required)
+-o, -output DIR        Output directory for evidence package (required for debug mode, optional with -send)
 -r, -recursive         Recursively process directories
 -hash ALGORITHM        Hash algorithm: SHA256 (default), SHA512
 -desc DESCRIPTION      Evidence description for manifest
@@ -84,20 +114,27 @@ make build-all
 -hashes                Create HASHES.txt file for verification
 -report                Create integrity report
 -verify                Verify hashes after acquisition (default: true)
--server URL            Remote server endpoint for transmission
+-send                  Send evidence package to remote server (production mode)
+-server URL            Remote server endpoint for transmission (required with -send)
 -token TOKEN           Authentication token for server communication
 ```
 
+**Mode Selection**:
+- **Production Mode**: Use `-send -server URL -token TOKEN` (transmits to server, no local storage)
+- **Debug Mode**: Use `-o DIR` (saves locally only, no transmission)
+- **Note**: `-send` and `-o` are mutually exclusive
+
 ### Remote Transmission
 
-Evidex transmits extracted metadata packages directly to remote analysis server endpoints:
+Evidex transmits complete evidence packages (files + metadata) directly to remote analysis server endpoints:
 
 ```bash
-# Acquire metadata and transmit to analysis server
-./build/evidex -o ./evidence -server https://evidence-analysis.server.com:8443/api/evidence -token YOUR_TOKEN image.jpg
+# Production mode: Direct transmission without local storage
+./build/evidex -send -server https://evidence-analysis.server.com:8443/api/evidence -token YOUR_TOKEN image.jpg
 
 # The tool will:
-# 1. Extract comprehensive metadata from all file types
+# 1. Read files in read-only mode (never modifies source)
+# 2. Extract comprehensive metadata from all file types
 # 2. Create metadata package with complete chain of custody
 # 3. Include RFC 5424 structured logging with metadata details
 # 4. Intelligently chunk large metadata sets
@@ -106,13 +143,16 @@ Evidex transmits extracted metadata packages directly to remote analysis server 
 # 7. Source files remain unmodified at origin
 ```
 
-**Metadata Transmitted**:
+**Evidence Package Transmitted**:
+- **Complete file content** (binary data, base64-encoded in JSON)
 - File system metadata (permissions, timestamps, ownership, size)
 - Image metadata (EXIF, XMP, IPTC, GPS, color profiles)
 - Video metadata (codecs, resolution, bitrate, duration, frame rate)
 - Document metadata (author, creation date, modification history)
 - Archive metadata (compression type, member information)
 - Cryptographic hashes (SHA-256, SHA-512)
+- Chain of custody information
+- RFC 5424 structured acquisition logs
 
 ### Comprehensive Logging
 

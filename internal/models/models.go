@@ -72,6 +72,7 @@ type FileEvidence struct {
 	AcquisitionTime time.Time      `json:"acquisition_time"` // When file was acquired
 	Verified        bool           `json:"verified"`         // Hash verification status
 	VerificationErr string         `json:"verification_err"` // Verification error if any
+	FileContent     []byte         `json:"file_content"`     // File content for transmission (read-only, never modifies source)
 }
 
 // FileHashes contains cryptographic hashes for integrity verification

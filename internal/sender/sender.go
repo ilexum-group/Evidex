@@ -32,6 +32,29 @@ func SendEvidencePackage(serverURL, authToken string, pkg *models.EvidencePackag
 	pkg.ServerURL = serverURL
 	pkg.AuthToken = authToken
 
+	// Load file contents for transmission
+	utils.LogInfo("Loading file contents for transmission", map[string]string{
+		"file_count": fmt.Sprintf("%d", len(pkg.Files)),
+	})
+
+	for i, fileEvidence := range pkg.Files {
+		// Read file content
+		content, err := os.ReadFile(fileEvidence.SourcePath)
+		if err != nil {
+			utils.LogWarn("Failed to read file content for transmission", map[string]string{
+				"path":  fileEvidence.SourcePath,
+				"error": err.Error(),
+			})
+			continue
+		}
+
+		pkg.Files[i].FileContent = content
+		utils.LogDebug("Loaded file content", map[string]string{
+			"file": fileEvidence.Filename,
+			"size": fmt.Sprintf("%d bytes", len(content)),
+		})
+	}
+
 	// Strategy: Send as JSON with intelligent chunking for large files
 	jsonData, err := json.Marshal(pkg)
 	if err != nil {
