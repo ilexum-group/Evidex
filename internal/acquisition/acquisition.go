@@ -81,7 +81,7 @@ func (a *Acquirer) AcquireFile(filePath string) error {
 	}
 
 	// Calculate hashes
-	hashes, err := metadata.CalculateFileHashes(filePath, a.primaryHashAlg)
+	hashes, err := metadata.CalculateFileHashes(filePath)
 	if err != nil {
 		a.logError("CalculateHashes", filePath, err)
 		evidence.VerificationErr = err.Error()

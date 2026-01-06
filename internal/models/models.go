@@ -52,27 +52,28 @@ type Custodian struct {
 
 // FileEvidence represents a single evidence file with complete metadata
 type FileEvidence struct {
-	SourcePath      string         `json:"source_path"`      // Original file path
-	RelativePath    string         `json:"relative_path"`    // Path within evidence package
-	Filename        string         `json:"filename"`         // Original filename
-	FileSize        int64          `json:"file_size"`        // Size in bytes
-	FileMode        uint32         `json:"file_mode"`        // Unix permissions
-	AccessedTime    time.Time      `json:"accessed_time"`    // Access time
-	ModifiedTime    time.Time      `json:"modified_time"`    // Modification time
-	CreatedTime     time.Time      `json:"created_time"`     // Creation/birth time
-	ChangeTime      time.Time      `json:"change_time"`      // Metadata change time
-	Owner           string         `json:"owner"`            // File owner
-	Group           string         `json:"group"`            // File group
-	FileType        string         `json:"file_type"`        // MIME type
-	IsSymlink       bool           `json:"is_symlink"`       // Is symbolic link
-	SymlinkTarget   string         `json:"symlink_target"`   // Symlink target if applicable
-	Hashes          *FileHashes    `json:"hashes"`           // Cryptographic hashes
-	ImageMetadata   *ImageMetadata `json:"image_metadata"`   // EXIF/XMP for images
-	VideoMetadata   *VideoMetadata `json:"video_metadata"`   // Codec info for videos
-	AcquisitionTime time.Time      `json:"acquisition_time"` // When file was acquired
-	Verified        bool           `json:"verified"`         // Hash verification status
-	VerificationErr string         `json:"verification_err"` // Verification error if any
-	FileContent     []byte         `json:"file_content"`     // File content for transmission (read-only, never modifies source)
+	SourcePath      string            `json:"source_path"`                // Original file path
+	RelativePath    string            `json:"relative_path"`              // Path within evidence package
+	Filename        string            `json:"filename"`                   // Original filename
+	FileSize        int64             `json:"file_size"`                  // Size in bytes
+	FileMode        uint32            `json:"file_mode"`                  // Unix permissions
+	AccessedTime    time.Time         `json:"accessed_time"`              // Access time
+	ModifiedTime    time.Time         `json:"modified_time"`              // Modification time
+	CreatedTime     time.Time         `json:"created_time"`               // Creation/birth time
+	ChangeTime      time.Time         `json:"change_time"`                // Metadata change time
+	Owner           string            `json:"owner"`                      // File owner
+	Group           string            `json:"group"`                      // File group
+	FileType        string            `json:"file_type"`                  // MIME type
+	IsSymlink       bool              `json:"is_symlink"`                 // Is symbolic link
+	SymlinkTarget   string            `json:"symlink_target"`             // Symlink target if applicable
+	Hashes          *FileHashes       `json:"hashes"`                     // Cryptographic hashes
+	ImageMetadata   *ImageMetadata    `json:"image_metadata"`             // EXIF/XMP for images
+	VideoMetadata   *VideoMetadata    `json:"video_metadata"`             // Codec info for videos
+	GenericMetadata map[string]string `json:"generic_metadata,omitempty"` // Other file types
+	AcquisitionTime time.Time         `json:"acquisition_time"`           // When file was acquired
+	Verified        bool              `json:"verified"`                   // Hash verification status
+	VerificationErr string            `json:"verification_err"`           // Verification error if any
+	FileContent     []byte            `json:"file_content"`               // File content for transmission (read-only, never modifies source)
 }
 
 // FileHashes contains cryptographic hashes for integrity verification
@@ -83,28 +84,11 @@ type FileHashes struct {
 }
 
 // ImageMetadata contains image-specific metadata
+// Reduced to the fields we currently populate.
 type ImageMetadata struct {
-	Format       string            `json:"format"`         // Image format (JPEG, PNG, etc.)
-	Width        int               `json:"width"`          // Image width in pixels
-	Height       int               `json:"height"`         // Image height in pixels
-	ColorSpace   string            `json:"color_space"`    // Color space (RGB, CMYK, etc.)
-	BitDepth     int               `json:"bit_depth"`      // Bits per channel
-	EXIF         map[string]string `json:"exif,omitempty"` // EXIF metadata
-	XMP          map[string]string `json:"xmp,omitempty"`  // XMP metadata
-	IPTC         map[string]string `json:"iptc,omitempty"` // IPTC metadata
-	GPS          *GPSCoordinates   `json:"gps,omitempty"`  // GPS coordinates if present
-	CameraModel  string            `json:"camera_model"`   // Camera model
-	LensMake     string            `json:"lens_make"`      // Lens manufacturer
-	ExposureTime string            `json:"exposure_time"`  // Exposure time
-	FNumber      string            `json:"f_number"`       // F-number
-	ISO          int               `json:"iso"`            // ISO sensitivity
-	FocalLength  string            `json:"focal_length"`   // Focal length
-	DateTime     time.Time         `json:"date_time"`      // Photo date/time
-	Software     string            `json:"software"`       // Software used
-	Copyright    string            `json:"copyright"`      // Copyright info
-	Artist       string            `json:"artist"`         // Artist/photographer
-	Description  string            `json:"description"`    // Image description
-	Keywords     []string          `json:"keywords"`       // Keywords/tags
+	Format string `json:"format"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
 }
 
 // GPSCoordinates represents GPS location data

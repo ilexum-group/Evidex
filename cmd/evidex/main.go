@@ -161,7 +161,8 @@ func runProductionMode(cfg *Config) {
 	fmt.Printf("Server URL: %s\n", cfg.ServerURL)
 	utils.LogInfo("Sending evidence package to server", map[string]string{"url": cfg.ServerURL})
 
-	if err := sender.SendEvidencePackage(cfg.ServerURL, cfg.AuthToken, pkg); err != nil {
+	snd := sender.NewSender(cfg.ServerURL, cfg.AuthToken)
+	if err := snd.SendEvidencePackage(pkg); err != nil {
 		utils.LogError("Failed to send evidence package", map[string]string{"error": err.Error()})
 		fmt.Printf("\n❌ Failed to send: %v\n", err)
 		os.Exit(1)
