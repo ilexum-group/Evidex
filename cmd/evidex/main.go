@@ -9,6 +9,7 @@ import (
 
 	"github.com/evidex/internal/acquisition"
 	"github.com/evidex/internal/formatter"
+	"github.com/evidex/internal/models"
 	"github.com/evidex/internal/sender"
 	"github.com/evidex/internal/utils"
 )
@@ -100,40 +101,24 @@ func main() {
 
 	utils.LogInfo("Starting Evidex", map[string]string{"version": version})
 
-	// Determine working directory
-	workingDir := cfg.OutputDir
-	useTemporaryDir := false
-
-	// Production mode: use temporary directory if -o not specified
-	if cfg.OutputDir == "" && cfg.SendToServer {
-		tmpDir, err := os.MkdirTemp("", "evidex-*")
-		if err != nil {
-			utils.LogError("Failed to create temporary directory", map[string]string{"error": err.Error()})
-			os.Exit(1)
-		}
-		workingDir = tmpDir
-		useTemporaryDir = true
-		utils.LogInfo("Production mode: using temporary directory", map[string]string{"path": workingDir})
-		defer func() {
-			if useTemporaryDir {
-				utils.LogInfo("Cleaning up temporary directory", map[string]string{"path": workingDir})
-				if err := os.RemoveAll(workingDir); err != nil {
-					utils.LogWarn("Failed to remove temporary directory", map[string]string{"path": workingDir, "error": err.Error()})
-				}
-			}
-		}()
+	// Determine mode and setup
+	if cfg.SendToServer {
+		utils.LogInfo("Production mode: direct transmission (no disk writes)", map[string]string{})
+		// Production mode: no working directory needed
+		runProductionMode(cfg)
 	} else {
-		utils.LogInfo("Debug mode: using output directory", map[string]string{"path": workingDir})
+		utils.LogInfo("Debug mode: local storage", map[string]string{"path": cfg.OutputDir})
+		// Debug mode: use output directory
+		runDebugMode(cfg)
 	}
 
-	// Create working directory
-	if err := utils.EnsureDirectory(workingDir); err != nil {
-		utils.LogError("Failed to create working directory", map[string]string{"path": workingDir, "error": err.Error()})
-		os.Exit(1)
-	}
+	utils.LogInfo("Evidex acquisition completed", map[string]string{"status": "successfully"})
+}
 
-	// Create acquirer
-	acquirer := acquisition.NewAcquirer(workingDir)
+// runProductionMode runs in production mode (no disk writes, direct transmission)
+func runProductionMode(cfg *Config) {
+	// Create acquirer without working directory (memory only)
+	acquirer := acquisition.NewAcquirer("")
 
 	// Set hash algorithm
 	if cfg.HashAlgorithm != "" {
@@ -141,26 +126,64 @@ func main() {
 		utils.LogInfo("Hash algorithm set", map[string]string{"algorithm": cfg.HashAlgorithm})
 	}
 
-	// Process input files/directories
-	for _, filePath := range cfg.FilePaths {
-		fileInfo, err := os.Stat(filePath)
-		if err != nil {
-			utils.LogError("File not found", map[string]string{"path": filePath, "error": err.Error()})
-			continue
-		}
+	// Process input files (metadata only, no copying)
+	processFiles(acquirer, cfg)
 
-		if fileInfo.IsDir() {
-			utils.LogInfo("Processing directory", map[string]string{"path": filePath, "recursive": fmt.Sprintf("%v", cfg.Recursive)})
-			if err := acquirer.AcquireDirectory(filePath, cfg.Recursive); err != nil {
-				utils.LogError("Directory acquisition failed", map[string]string{"path": filePath, "error": err.Error()})
-			}
-		} else {
-			utils.LogInfo("Processing file", map[string]string{"path": filePath})
-			if err := acquirer.AcquireFile(filePath); err != nil {
-				utils.LogError("File acquisition failed", map[string]string{"path": filePath, "error": err.Error()})
-			}
-		}
+	// Build evidence package (in memory)
+	utils.LogInfo("Building evidence package", map[string]string{})
+	pkg := acquirer.GetEvidencePackage()
+
+	// Set manifest properties
+	if cfg.Description != "" {
+		pkg.Manifest.EvidenceDescription = cfg.Description
 	}
+	if cfg.Notes != "" {
+		pkg.Manifest.ExaminersNotes = cfg.Notes
+	}
+
+	// Print summary
+	fmt.Printf("\n")
+	fmt.Printf("================================\n")
+	fmt.Printf("FORENSIC EVIDENCE PACKAGE\n")
+	fmt.Printf("================================\n")
+	fmt.Printf("Evidence ID: %s\n", pkg.Manifest.ID)
+	fmt.Printf("Files Acquired: %d\n", pkg.Manifest.FileCount)
+	fmt.Printf("Total Size: %d bytes\n", pkg.Manifest.TotalSize)
+	fmt.Printf("Mode: Production (no local storage)\n")
+	fmt.Printf("Hash Algorithm: %s\n", pkg.Manifest.HashAlgorithm)
+	fmt.Printf("Acquisition Status: %s\n", pkg.Manifest.Integrity)
+
+	// Send to remote server
+	fmt.Printf("\n")
+	fmt.Printf("================================\n")
+	fmt.Printf("SENDING EVIDENCE TO SERVER\n")
+	fmt.Printf("================================\n")
+	fmt.Printf("Server URL: %s\n", cfg.ServerURL)
+	utils.LogInfo("Sending evidence package to server", map[string]string{"url": cfg.ServerURL})
+
+	if err := sender.SendEvidencePackage(cfg.ServerURL, cfg.AuthToken, pkg); err != nil {
+		utils.LogError("Failed to send evidence package", map[string]string{"error": err.Error()})
+		fmt.Printf("\n❌ Failed to send: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n✅ Evidence package sent successfully!\n")
+	utils.LogInfo("Evidence package sent successfully", map[string]string{"status": "success"})
+}
+
+// runDebugMode runs in debug mode (local storage)
+func runDebugMode(cfg *Config) {
+	// Create working directory
+	if err := utils.EnsureDirectory(cfg.OutputDir); err != nil {
+		utils.LogError("Failed to create output directory", map[string]string{"path": cfg.OutputDir, "error": err.Error()})
+		os.Exit(1)
+	}
+
+	// Create acquirer
+	acquirer := createAcquirer(cfg.OutputDir, cfg)
+
+	// Process input files
+	processFiles(acquirer, cfg)
 
 	// Copy files to package
 	utils.LogInfo("Copying files to package", map[string]string{})
@@ -182,6 +205,70 @@ func main() {
 	}
 
 	// Export formats
+	exportFormats(cfg.OutputDir, pkg, cfg)
+
+	// Print summary
+	fmt.Printf("\n")
+	fmt.Printf("================================\n")
+	fmt.Printf("FORENSIC EVIDENCE PACKAGE CREATED\n")
+	fmt.Printf("================================\n")
+	fmt.Printf("Evidence ID: %s\n", pkg.Manifest.ID)
+	fmt.Printf("Files Acquired: %d\n", pkg.Manifest.FileCount)
+	fmt.Printf("Total Size: %d bytes\n", pkg.Manifest.TotalSize)
+	fmt.Printf("Output Directory: %s\n", cfg.OutputDir)
+	fmt.Printf("Mode: Debug (local storage)\n")
+	fmt.Printf("Hash Algorithm: %s\n", pkg.Manifest.HashAlgorithm)
+	fmt.Printf("Acquisition Status: %s\n", pkg.Manifest.Integrity)
+	fmt.Printf("\nPackage Contents:\n")
+	fmt.Printf("  - files/           (Acquired evidence files)\n")
+	fmt.Printf("  - metadata/        (File metadata and hashes)\n")
+	fmt.Printf("  - HASHES.txt       (Hash verification)\n")
+	fmt.Printf("  - README.txt       (Package information)\n")
+	fmt.Printf("  - INTEGRITY_REPORT.txt (Verification report)\n")
+	fmt.Printf("\nTo verify integrity:\n")
+	fmt.Printf("  Compare file hashes with HASHES.txt\n")
+	fmt.Printf("  Review manifest.json for chain of custody\n")
+	fmt.Printf("\n")
+}
+
+// createAcquirer creates and configures the acquirer
+func createAcquirer(workingDir string, cfg *Config) *acquisition.Acquirer {
+	acquirer := acquisition.NewAcquirer(workingDir)
+
+	// Set hash algorithm
+	if cfg.HashAlgorithm != "" {
+		acquirer.SetHashAlgorithm(cfg.HashAlgorithm)
+		utils.LogInfo("Hash algorithm set", map[string]string{"algorithm": cfg.HashAlgorithm})
+	}
+
+	return acquirer
+}
+
+// processFiles processes all input files and directories
+func processFiles(acquirer *acquisition.Acquirer, cfg *Config) {
+	for _, filePath := range cfg.FilePaths {
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			utils.LogError("File not found", map[string]string{"path": filePath, "error": err.Error()})
+			continue
+		}
+
+		if fileInfo.IsDir() {
+			utils.LogInfo("Processing directory", map[string]string{"path": filePath, "recursive": fmt.Sprintf("%v", cfg.Recursive)})
+			if err := acquirer.AcquireDirectory(filePath, cfg.Recursive); err != nil {
+				utils.LogError("Directory acquisition failed", map[string]string{"path": filePath, "error": err.Error()})
+			}
+		} else {
+			utils.LogInfo("Processing file", map[string]string{"path": filePath})
+			if err := acquirer.AcquireFile(filePath); err != nil {
+				utils.LogError("File acquisition failed", map[string]string{"path": filePath, "error": err.Error()})
+			}
+		}
+	}
+}
+
+// exportFormats exports all requested formats
+func exportFormats(workingDir string, pkg *models.EvidencePackage, cfg *Config) {
 	pkgFormatter := formatter.NewPackageFormatter(workingDir, pkg)
 
 	if cfg.ExportJSON {
@@ -222,60 +309,6 @@ func main() {
 	if err := pkgFormatter.CompressPackage("tar.gz"); err != nil {
 		utils.LogWarn("Compression metadata failed", map[string]string{"error": err.Error()})
 	}
-
-	// Summary
-	fmt.Printf("\n")
-	fmt.Printf("================================\n")
-	fmt.Printf("FORENSIC EVIDENCE PACKAGE CREATED\n")
-	fmt.Printf("================================\n")
-	fmt.Printf("Evidence ID: %s\n", pkg.Manifest.ID)
-	fmt.Printf("Files Acquired: %d\n", pkg.Manifest.FileCount)
-	fmt.Printf("Total Size: %d bytes\n", pkg.Manifest.TotalSize)
-	if useTemporaryDir {
-		fmt.Printf("Mode: Production (no local storage)\n")
-	} else {
-		fmt.Printf("Output Directory: %s\n", cfg.OutputDir)
-		fmt.Printf("Mode: Debug (local storage)\n")
-	}
-	fmt.Printf("Hash Algorithm: %s\n", pkg.Manifest.HashAlgorithm)
-	fmt.Printf("Acquisition Status: %s\n", pkg.Manifest.Integrity)
-	fmt.Printf("\nPackage Contents:\n")
-	fmt.Printf("  - files/           (Acquired evidence files)\n")
-	fmt.Printf("  - metadata/        (File metadata and hashes)\n")
-	fmt.Printf("  - HASHES.txt       (Hash verification)\n")
-	fmt.Printf("  - README.txt       (Package information)\n")
-	fmt.Printf("  - INTEGRITY_REPORT.txt (Verification report)\n")
-	fmt.Printf("\nTo verify integrity:\n")
-	fmt.Printf("  Compare file hashes with HASHES.txt\n")
-	fmt.Printf("  Review manifest.json for chain of custody\n")
-	fmt.Printf("\n")
-
-	// Send to remote server if requested
-	if cfg.SendToServer {
-		if cfg.ServerURL == "" {
-			utils.LogError("Server URL is required when -send is specified", map[string]string{})
-			fmt.Fprintf(os.Stderr, "Error: -server flag is required when using -send\n")
-			os.Exit(1)
-		}
-
-		fmt.Printf("\n")
-		fmt.Printf("================================\n")
-		fmt.Printf("SENDING EVIDENCE TO SERVER\n")
-		fmt.Printf("================================\n")
-		fmt.Printf("Server URL: %s\n", cfg.ServerURL)
-		utils.LogInfo("Sending evidence package to server", map[string]string{"url": cfg.ServerURL})
-
-		if err := sender.SendEvidencePackage(cfg.ServerURL, cfg.AuthToken, pkg); err != nil {
-			utils.LogError("Failed to send evidence package", map[string]string{"error": err.Error()})
-			fmt.Printf("\n❌ Failed to send: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("\n✅ Evidence package sent successfully!\n")
-		utils.LogInfo("Evidence package sent successfully", map[string]string{"status": "success"})
-	}
-
-	utils.LogInfo("Evidex acquisition completed", map[string]string{"status": "successfully"})
 }
 
 // parseFlags parses command-line flags
