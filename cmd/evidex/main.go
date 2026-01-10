@@ -74,7 +74,7 @@ type Config struct {
 	FilePaths     []string
 	Recursive     bool
 	HashAlgorithm string
-	Description   string
+	CaseID        string
 	Notes         string
 	ExportJSON    bool
 	ExportCSV     bool
@@ -134,8 +134,8 @@ func runProductionMode(cfg *Config) {
 	pkg := acquirer.GetEvidencePackage()
 
 	// Set manifest properties
-	if cfg.Description != "" {
-		pkg.Manifest.EvidenceDescription = cfg.Description
+	if cfg.CaseID != "" {
+		pkg.Manifest.CaseID = cfg.CaseID
 	}
 	if cfg.Notes != "" {
 		pkg.Manifest.ExaminersNotes = cfg.Notes
@@ -147,6 +147,7 @@ func runProductionMode(cfg *Config) {
 	fmt.Printf("FORENSIC EVIDENCE PACKAGE\n")
 	fmt.Printf("================================\n")
 	fmt.Printf("Evidence ID: %s\n", pkg.Manifest.ID)
+	fmt.Printf("Case ID: %s\n", pkg.Manifest.CaseID)
 	fmt.Printf("Files Acquired: %d\n", pkg.Manifest.FileCount)
 	fmt.Printf("Total Size: %d bytes\n", pkg.Manifest.TotalSize)
 	fmt.Printf("Mode: Production (no local storage)\n")
@@ -198,8 +199,8 @@ func runDebugMode(cfg *Config) {
 	pkg := acquirer.GetEvidencePackage()
 
 	// Set manifest properties
-	if cfg.Description != "" {
-		pkg.Manifest.EvidenceDescription = cfg.Description
+	if cfg.CaseID != "" {
+		pkg.Manifest.CaseID = cfg.CaseID
 	}
 	if cfg.Notes != "" {
 		pkg.Manifest.ExaminersNotes = cfg.Notes
@@ -334,7 +335,7 @@ func parseFlags() *Config {
 	fs.BoolVar(&cfg.Recursive, "r", false, "Recursively process directories")
 	fs.BoolVar(&cfg.Recursive, "recursive", false, "Recursively process directories")
 	fs.StringVar(&cfg.HashAlgorithm, "hash", "SHA-256", "Hash algorithm")
-	fs.StringVar(&cfg.Description, "desc", "", "Evidence description")
+	fs.StringVar(&cfg.CaseID, "case-id", "", "Case identifier for correlation")
 	fs.StringVar(&cfg.Notes, "notes", "", "Examiner notes")
 	fs.BoolVar(&cfg.ExportJSON, "json", true, "Export JSON metadata")
 	fs.BoolVar(&cfg.ExportCSV, "csv", false, "Export CSV manifest")

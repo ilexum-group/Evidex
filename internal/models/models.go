@@ -32,7 +32,7 @@ type ChainOfCustodyManifest struct {
 	HashAlgorithm       string      `json:"hash_algorithm"`       // Primary hash algorithm (SHA-256, SHA-512)
 	SecondaryAlgorithm  string      `json:"secondary_algorithm"`  // Secondary hash (optional)
 	AcquisitionMethod   string      `json:"acquisition_method"`   // read-only, file copy, etc.
-	EvidenceDescription string      `json:"evidence_description"` // Case-specific notes
+	CaseID              string      `json:"case_id"`              // Case identifier for correlation
 	ExaminersNotes      string      `json:"examiners_notes"`      // Additional context
 	Integrity           string      `json:"integrity"`            // Integrity status (verified, unverified)
 	Custodians          []Custodian `json:"custodians"`           // Chain of custody history
