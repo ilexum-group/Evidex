@@ -55,14 +55,14 @@ In production mode, evidence is transmitted directly to remote servers **without
 # Acquire and transmit evidence to analysis server
 ./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN image.jpg
 
-# Process multiple files
-./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN file1.jpg file2.mp4
+# Process multiple files with case ID
+./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -case-id CASE-2026-001 file1.jpg file2.mp4
 
 # Process entire directory recursively
-./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -r /path/to/folder
+./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -case-id CASE-2026-001 -r /path/to/folder
 
-# With case description
-./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -desc "Case: ABC-2025-001" evidence.jpg
+# With case ID and examiner notes
+./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -case-id CASE-2026-001 -notes "Initial acquisition" evidence.jpg
 ```
 
 **Production Mode Benefits**:
@@ -107,7 +107,7 @@ In debug mode, evidence is saved locally only (no transmission):
 -o, -output DIR        Output directory for evidence package (required for debug mode, optional with -send)
 -r, -recursive         Recursively process directories
 -hash ALGORITHM        Hash algorithm: SHA256 (default), SHA512
--desc DESCRIPTION      Evidence description for manifest
+-case-id ID            Case identifier for correlation (e.g., CASE-2026-001)
 -notes NOTES          Examiner notes for chain of custody
 -json                  Export JSON metadata (default: true)
 -csv                   Export CSV file manifest
