@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ilexum/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/internal/utils"
 )
 
 // createTempTestFile is a helper function to create temporary test files.

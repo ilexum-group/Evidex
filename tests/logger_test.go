@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ilexum/evidex/internal/logger"
+	"github.com/ilexum-group/evidex/internal/logger"
 )
 
 // TestNewLogger tests logger creation.

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum-group/evidex/internal/models"
 )
 
 // UnixExtractor implements OS-specific metadata extraction for Unix-like systems

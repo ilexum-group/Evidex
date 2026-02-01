@@ -5,7 +5,7 @@ import (
 	_ "image/gif" // Register GIF format
 	"os"
 
-	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum-group/evidex/internal/models"
 )
 
 // GIFExtractor implements metadata extraction for GIF images

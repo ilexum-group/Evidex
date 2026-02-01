@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ilexum/evidex/internal/formatter"
-	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum-group/evidex/internal/formatter"
+	"github.com/ilexum-group/evidex/internal/models"
 )
 
 // TestNewPackageFormatter tests PackageFormatter initialization.

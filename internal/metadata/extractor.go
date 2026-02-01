@@ -1,7 +1,7 @@
 // Package metadata provides a polymorphic interface for metadata extraction
 package metadata
 
-import "github.com/ilexum/evidex/internal/models"
+import "github.com/ilexum-group/evidex/internal/models"
 
 // MetadataExtractor defines the interface for all metadata extractors
 // This allows for polymorphic behavior across different file types

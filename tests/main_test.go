@@ -1,9 +1,10 @@
 package tests
 
 import (
-	"github.com/ilexum/evidex/internal/config"
 	"os"
 	"testing"
+
+	"github.com/ilexum-group/evidex/internal/config"
 )
 
 // Testconfig.ParseFlags tests the flag parsing functionality.

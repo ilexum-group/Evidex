@@ -5,7 +5,7 @@ import (
 	_ "image/jpeg" // Register JPEG format
 	"os"
 
-	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum-group/evidex/internal/models"
 )
 
 // JPEGExtractor implements metadata extraction for JPEG images
