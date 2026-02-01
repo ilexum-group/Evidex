@@ -1,7 +1,7 @@
 package os
 
 import (
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/models"
 )
 
 // OSMetadataExtractor defines the interface for OS-specific metadata extraction

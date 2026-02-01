@@ -1,11 +1,12 @@
-package main
+package tests
 
 import (
+	"github.com/ilexum/evidex/internal/config"
 	"os"
 	"testing"
 )
 
-// TestParseFlags tests the flag parsing functionality
+// Testconfig.ParseFlags tests the flag parsing functionality.
 func TestParseFlags(t *testing.T) {
 	// Save original args
 	oldArgs := os.Args
@@ -14,7 +15,7 @@ func TestParseFlags(t *testing.T) {
 	// Set test args
 	os.Args = []string{"evidex", "-o", "/tmp/evidex-test", "/path/to/file"}
 
-	cfg := parseFlags()
+	cfg := config.ParseFlags()
 
 	if cfg.OutputDir == "" {
 		t.Error("Expected output directory to be set")
@@ -25,7 +26,7 @@ func TestParseFlags(t *testing.T) {
 	}
 }
 
-// TestFlagDefaults tests that flag defaults are set correctly
+// TestFlagDefaults tests that flag defaults are set correctly.
 func TestFlagDefaults(t *testing.T) {
 	// Save original args
 	oldArgs := os.Args
@@ -33,7 +34,7 @@ func TestFlagDefaults(t *testing.T) {
 
 	os.Args = []string{"evidex", "-o", "/tmp/test", "/path"}
 
-	cfg := parseFlags()
+	cfg := config.ParseFlags()
 
 	if cfg.Recursive != false {
 		t.Error("Expected Recursive to default to false")
@@ -44,7 +45,7 @@ func TestFlagDefaults(t *testing.T) {
 	}
 }
 
-// TestValidateConfig tests input validation
+// Testconfig.ValidateConfig tests input validation.
 func TestValidateConfig(t *testing.T) {
 	// Create temporary test file
 	tmpfile, err := os.CreateTemp("", "test-*.txt")
@@ -62,12 +63,12 @@ func TestValidateConfig(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		config  *Config
+		config  *config.Config
 		wantErr bool
 	}{
 		{
 			name: "Valid minimal config",
-			config: &Config{
+			config: &config.Config{
 				OutputDir:     os.TempDir(),
 				FilePaths:     []string{tmpfile.Name()},
 				HashAlgorithm: "SHA-256",
@@ -76,7 +77,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "Missing output directory",
-			config: &Config{
+			config: &config.Config{
 				OutputDir:     "",
 				FilePaths:     []string{tmpfile.Name()},
 				HashAlgorithm: "SHA-256",
@@ -85,7 +86,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "No paths provided",
-			config: &Config{
+			config: &config.Config{
 				OutputDir:     os.TempDir(),
 				FilePaths:     []string{},
 				HashAlgorithm: "SHA-256",
@@ -96,9 +97,9 @@ func TestValidateConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateConfig(tt.config)
+			err := config.ValidateConfig(tt.config)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("validateConfig() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("config.ValidateConfig() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

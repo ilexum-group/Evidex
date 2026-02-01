@@ -1,103 +1,45 @@
-# Evidex - Forensic Evidence Acquisition Architecture
+# Evidex Architecture
 
-## Executive Summary
+## Overview
 
-**Evidex** is a portable, auditable forensic evidence acquisition binary designed for collecting multimedia files (images and videos) with complete chain of custody documentation. The tool operates on read-only principles, making zero modifications to source files while maintaining forensic integrity through cryptographic hashing and comprehensive logging.
+Evidex follows a modular architecture separating command-line interface, acquisition logic, metadata extraction, and output formatting. The system operates on strict read-only principles with comprehensive logging and chain of custody documentation.
 
----
+## Directory Structure
 
-## Table of Contents
+### `cmd/evidex/`
+Command-line interface and application entry point. Handles flag parsing, user input validation, and orchestrates the acquisition workflow.
 
-1. [Design Principles](#design-principles)
-2. [System Architecture](#system-architecture)
-3. [Data Flow](#data-flow)
-4. [Package Structure](#package-structure)
-5. [Chain of Custody Model](#chain-of-custody-model)
-6. [Evidence Package Format](#evidence-package-format)
-7. [Security Considerations](#security-considerations)
-8. [Legal and Forensic Standards](#legal-and-forensic-standards)
+### `internal/acquisition/`
+Core evidence acquisition engine. Manages file enumeration, read-only access verification, hash calculation, and evidence package assembly. Coordinates metadata extraction and ensures forensic integrity throughout the process.
 
----
+### `internal/metadata/`
+Metadata extraction modules for different file types. Extracts EXIF data from images, codec information from videos, and filesystem metadata. Includes specialized extractors for generic files, images, videos, and operating system metadata.
 
-## Design Principles
+### `internal/formatter/`
+Output format generation. Creates JSON manifests, CSV file listings, hash verification files, and human-readable reports. Ensures evidence packages meet forensic documentation standards.
 
-### Fundamental Axioms
+### `internal/models/`
+Data structures and type definitions. Defines EvidencePackage, ChainOfCustodyManifest, FileEvidence, and related structures used throughout the application.
 
-1. **Non-Modification**: Source files are NEVER modified, deleted, or moved
-2. **Read-Only Access**: All file operations use read-only file handles
-3. **Complete Logging**: Every operation is logged with timestamps and context
-4. **Reproducibility**: Identical inputs produce identical outputs (deterministic)
-5. **Auditability**: All acquisition steps can be independently verified
-6. **Portability**: Binary runs on Linux, macOS, Windows, FreeBSD, OpenBSD
-7. **No External Dependencies**: Zero reliance on remote services or network calls
-8. **Transparency**: Source code is open and auditable
+### `internal/logger/`
+RFC 5424 compliant structured logging system. Captures all operations with timestamps and contextual metadata for audit trail and transmission to analysis servers.
 
-### Forensic Integrity Commitments
+### `internal/sender/`
+Remote transmission module. Handles secure HTTP/HTTPS communication with analysis servers, Bearer token authentication, and intelligent chunking for large evidence packages.
 
-- **Hash Verification**: Primary (SHA-256) + Secondary (SHA-512) hashes
-- **Metadata Preservation**: Complete filesystem and file metadata captured
-- **Temporal Accuracy**: UTC and local timestamps with timezone context
-- **System Context**: Operating system, user, and hardware information recorded
-- **Evidence ID**: Unique, traceable identifier for entire package
+### `internal/utils/`
+Shared utility functions for file operations, hash calculation, and common forensic tasks.
 
----
+## Data Flow
 
-## System Architecture
-
-### High-Level Components
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                          EVIDEX CLI                          │
-│  (cmd/evidex/main.go - Command-line interface & flags)      │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-┌────────────────▼────────────────────────────────────────────┐
-│                   ACQUISITION LAYER                         │
-│  (internal/acquisition/acquisition.go)                       │
-│  - File enumeration and filtering                           │
-│  - Read-only access verification                            │
-│  - Metadata extraction                                      │
-│  - Hash calculation & verification                          │
-│  - Package assembly                                         │
-└────────────────┬────────────────────────────────────────────┘
-                 │
-    ┌────────────┼────────────┬──────────────┐
-    │            │            │              │
-┌───▼───┐  ┌────▼─────┐ ┌───▼──────┐ ┌────▼──────┐
-│Metadata Hashing   │ Format    │ Package
-│Extractor Utility  │ Exporter  │ Verifier
-└─────────┘ └────────┘ └──────────┘ └───────────┘
-    │            │            │              │
-    └────────────┼────────────┴──────────────┘
-                 │
-    ┌────────────▼────────────────────────────┐
-    │   DATA MODELS & STRUCTURES               │
-    │   (internal/models/models.go)            │
-    │   - EvidencePackage                     │
-    │   - ChainOfCustodyManifest              │
-    │   - FileEvidence                        │
-    │   - AcquisitionLog                      │
-    │   - SystemContext                       │
-    └─────────────────────────────────────────┘
-                 │
-    ┌────────────▼────────────────────────────┐
-    │   OUTPUT FORMATS                        │
-    │   - JSON (metadata)                     │
-    │   - CSV (file listing)                  │
-    │   - Text reports (hashes, integrity)    │
-    │   - Original files (unmodified)         │
-    └─────────────────────────────────────────┘
-```
-
-### Module Breakdown
-
-#### 1. **CLI Interface** (`cmd/evidex/main.go`)
-- Flag parsing and validation
-- Input path processing (files/directories)
-- Recursive directory traversal
-- User feedback and progress reporting
-- Package summary and verification info
+1. CLI parses input paths and configuration flags
+2. Acquisition module enumerates files with read-only access
+3. Metadata extractors analyze each file without modification
+4. Hash utilities calculate cryptographic checksums
+5. Evidence package assembles files, metadata, and chain of custody
+6. Formatter generates output files or prepares transmission payload
+7. Sender transmits complete package to remote analysis server
+8. Logger captures all operations for audit trail
 
 #### 2. **Acquisition Engine** (`internal/acquisition/acquisition.go`)
 - `Acquirer` type: Manages entire acquisition process

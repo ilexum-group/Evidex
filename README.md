@@ -1,10 +1,16 @@
-# Evidex - Forensic Metadata Acquisition & Analysis Tool
+# Evidex
 
-A portable, auditable forensic tool for acquiring comprehensive metadata from all file types with complete chain of custody documentation and remote transmission for analysis. Designed for judicial proceedings with zero modifications to source evidence.
+## Description
 
-## Overview
+Evidex is a forensic evidence acquisition tool that collects files and comprehensive metadata for transmission to remote analysis servers. It operates in read-only mode, ensuring zero modifications to source evidence while maintaining complete chain of custody documentation.
 
-**Evidex** is a forensic evidence acquisition tool that collects files and their metadata for transmission to remote analysis servers while guaranteeing:
+## Purpose
+
+Evidex acquires forensic evidence from files and directories, extracting detailed metadata from images (EXIF, GPS, XMP), videos (codecs, duration, resolution), and documents. All evidence is packaged with cryptographic hashes (SHA-256/SHA-512) and transmitted securely to remote analysis servers for processing.
+
+## Problem It Solves
+
+Digital forensic investigations require collecting evidence without altering source files. Evidex provides a portable, auditable solution that acquires complete file metadata and content while guaranteeing forensic integrity through read-only operations, cryptographic verification, and comprehensive logging. It enables secure transmission of evidence packages to centralized analysis platforms, maintaining legally defensible chain of custody throughout the process.
 
 - ✅ **Complete Evidence Package**: Transmits file content and comprehensive metadata to remote servers
 - ✅ **Zero Modifications**: Source files are NEVER modified, deleted, or moved
@@ -220,6 +226,61 @@ make vendor    # Update vendor directory
 make help      # Show all targets
 ```
 
+## Development
+
+### Dependency Management
+
+Evidex uses **Go modules with vendoring** for reproducible builds and offline compilation:
+
+```bash
+# Update vendor directory (after adding/updating dependencies)
+go mod vendor
+
+# Verify vendor integrity
+go mod verify
+
+# All builds automatically use vendored dependencies
+go build -mod=vendor ./cmd/evidex
+go test -mod=vendor ./tests/...
+```
+
+**Why Vendoring?**
+- **Reproducibility**: Exact same dependencies across all builds
+- **Offline builds**: No internet required for compilation
+- **Security**: Audit and review all dependencies in version control
+- **Forensic integrity**: Self-contained tool with known dependencies
+
+### Running Tests
+
+```bash
+# Run all tests
+make test
+
+# Run tests with race detection
+make test-race
+
+# Run tests with coverage
+make test-coverage
+
+# Run with vendored dependencies
+go test -mod=vendor -v ./tests/...
+```
+
+### Code Quality
+
+```bash
+# Format code
+make fmt
+
+# Run linter (requires golangci-lint)
+make lint
+
+# Run all quality checks
+go fmt ./...
+go vet -mod=vendor ./...
+golangci-lint run ./...
+```
+
 ## Forensic Standards Compliance
 
 Evidex implements forensic best practices aligned with:
@@ -320,7 +381,7 @@ Evidex evidence packages are designed for legal admissibility by:
 
 No configuration file is needed. All options are command-line flags.
 
-Environment variables used:
+Environment variables:
 - None (self-contained binary)
 
 ## Requirements
@@ -363,6 +424,96 @@ limitations under the License.
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Comprehensive technical design
 - [cmd/evidex/README.md](cmd/evidex/README.md) - CLI documentation
 - [internal/README.md](internal/README.md) - Module documentation
+
+## Digital Evidence Custody Chain
+
+Evidex implements a comprehensive digital evidence custody chain that meets forensic standards:
+
+### Custody Chain Features
+
+**Standardized Hash Algorithms:**
+- MD5 (128-bit) - Legacy compatibility
+- SHA1 (160-bit) - Legacy compatibility  
+- SHA256 (256-bit) - Primary integrity verification
+- All hashes calculated automatically during evidence collection
+
+**Complete Command Logging:**
+- Every command executed during collection is logged
+- Includes command name, arguments, timestamps, exit codes
+- Command output sizes and error messages tracked
+- Working directory and environment variables recorded
+
+**Custody Transfer Tracking:**
+- Initial collection by agent
+- Transmission to Processor
+- Each transfer includes timestamp, custodian details, verification hash
+- Digital signatures supported for legal compliance
+
+**Agent Identification:**
+- Agent type: "evidex"
+- Agent version, hostname, and username
+- System context (OS, timezone, binary hash)
+- Case ID for correlation across evidence sources
+
+**Processor Integration:**
+- Automatic transmission to Processor with custody chain
+- Receipt confirmation with Processor ID
+- TimeAnalysis and Report references tracked
+- Failed transmission handling with error logging
+
+**Timeline Generation:**
+- Automatic timeline extraction from file timestamps
+- Created, modified, accessed timestamps
+- Formatted for TimeAnalysis in Processor UI
+- Sortable, filterable forensic timeline
+
+### Custody Chain Structure
+
+```go
+type CustodyChainEntry struct {
+    ID             string                 // Unique UUID
+    AgentType      string                 // "evidex"
+    AgentVersion   string                 // Version number
+    CaseID         string                 // Case correlation ID
+    MD5Hash        string                 // MD5 of evidence package
+    SHA1Hash       string                 // SHA1 of evidence package  
+    SHA256Hash     string                 // SHA256 of evidence package (primary)
+    LogEntries     []string               // RFC 5424 log entries
+    CommandHistory []CommandExecution     // All commands executed
+    CustodyHistory []CustodyTransfer      // Complete custody chain
+    ProcessorURL   string                 // Processor endpoint
+    TimeAnalysisRef string                // Timeline report ID
+    ReportRef      string                 // Forensic report ID
+}
+```
+
+### Usage Example
+
+The custody chain is automatically integrated when collecting evidence:
+
+```go
+// Create custody chain
+chain, _ := models.NewCustodyChainEntry(caseID, version)
+
+// Add commands as they execute
+chain.AddCommandExecution(CommandExecution{
+    Command:   "exiftool",
+    Arguments: []string{"-json", filepath},
+    StartTime: time.Now(),
+    // ... other fields
+})
+
+// Add logs from existing logger
+chain.AddLogEntry(logEntry)
+
+// Finalize with hashes
+chain.Finalize(evidenceData, fileCount)
+
+// Mark transmission to Processor
+chain.MarkTransmitted(processorURL, response)
+```
+
+The custody chain is included in the EvidencePackage JSON sent to Processor.
 
 ## Contributing
 

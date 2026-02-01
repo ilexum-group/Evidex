@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/evidex/internal/metadata"
-	"github.com/evidex/internal/models"
-	"github.com/evidex/internal/utils"
+	"github.com/ilexum/evidex/internal/metadata"
+	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/utils"
 )
 
 // Acquirer manages the evidence acquisition process

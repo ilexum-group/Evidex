@@ -3,7 +3,7 @@ package video
 import (
 	"os"
 
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/models"
 )
 
 // MKVExtractor implements metadata extraction for Matroska MKV videos

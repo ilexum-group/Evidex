@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/evidex/internal/metadata/generic"
-	"github.com/evidex/internal/metadata/images"
-	osmetadata "github.com/evidex/internal/metadata/os"
-	"github.com/evidex/internal/metadata/video"
-	"github.com/evidex/internal/models"
-	"github.com/evidex/internal/utils"
+	"github.com/ilexum/evidex/internal/metadata/generic"
+	"github.com/ilexum/evidex/internal/metadata/images"
+	osmetadata "github.com/ilexum/evidex/internal/metadata/os"
+	"github.com/ilexum/evidex/internal/metadata/video"
+	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/utils"
 )
 
 // Global extractor registry initialized once

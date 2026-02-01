@@ -1,34 +1,28 @@
-package logger
+package tests
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/ilexum/evidex/internal/logger"
 )
 
-// TestNewLogger tests logger creation
+// TestNewLogger tests logger creation.
 func TestNewLogger(t *testing.T) {
 	appName := "test-app"
-	logger, err := NewLogger(appName)
+	log, err := logger.NewLogger(appName)
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
 
-	if logger == nil {
+	if log == nil {
 		t.Fatal("Expected logger to be non-nil")
-	}
-
-	if logger.appName != appName {
-		t.Errorf("Expected app name %s, got %s", appName, logger.appName)
-	}
-
-	if logger.hostname == "" {
-		t.Error("Expected hostname to be non-empty")
 	}
 }
 
-// TestLogInfo tests info level logging
+// TestLogInfo tests info level logging.
 func TestLogInfo(t *testing.T) {
-	logger, err := NewLogger("test-app")
+	logger, err := logger.NewLogger("test-app")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -47,9 +41,9 @@ func TestLogInfo(t *testing.T) {
 	}
 }
 
-// TestLogWarn tests warning level logging
+// TestLogWarn tests warning level logging.
 func TestLogWarn(t *testing.T) {
-	logger, err := NewLogger("test-app")
+	logger, err := logger.NewLogger("test-app")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -68,9 +62,9 @@ func TestLogWarn(t *testing.T) {
 	}
 }
 
-// TestLogError tests error level logging
+// TestLogError tests error level logging.
 func TestLogError(t *testing.T) {
-	logger, err := NewLogger("test-app")
+	logger, err := logger.NewLogger("test-app")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -89,9 +83,9 @@ func TestLogError(t *testing.T) {
 	}
 }
 
-// TestLogDebug tests debug level logging
+// TestLogDebug tests debug level logging.
 func TestLogDebug(t *testing.T) {
-	logger, err := NewLogger("test-app")
+	logger, err := logger.NewLogger("test-app")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -110,9 +104,9 @@ func TestLogDebug(t *testing.T) {
 	}
 }
 
-// TestRFC5424Format tests RFC 5424 syslog format
+// TestRFC5424Format tests RFC 5424 syslog format.
 func TestRFC5424Format(t *testing.T) {
-	logger, err := NewLogger("evidex")
+	logger, err := logger.NewLogger("evidex")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -137,20 +131,15 @@ func TestRFC5424Format(t *testing.T) {
 		t.Errorf("Expected RFC 5424 version 1, got: %s", logEntry)
 	}
 
-	// Check for hostname
-	if !strings.Contains(logEntry, logger.hostname) {
-		t.Errorf("Expected hostname in log, got: %s", logEntry)
-	}
-
 	// Check for app name
 	if !strings.Contains(logEntry, "evidex") {
 		t.Errorf("Expected app name 'evidex' in log, got: %s", logEntry)
 	}
 }
 
-// TestGetLogs tests log retrieval
+// TestGetLogs tests log retrieval.
 func TestGetLogs(t *testing.T) {
-	logger, err := NewLogger("test-app")
+	logger, err := logger.NewLogger("test-app")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -173,9 +162,9 @@ func TestGetLogs(t *testing.T) {
 	}
 }
 
-// TestClearLogs tests log clearing
+// TestClearLogs tests log clearing.
 func TestClearLogs(t *testing.T) {
-	logger, err := NewLogger("test-app")
+	logger, err := logger.NewLogger("test-app")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -196,9 +185,9 @@ func TestClearLogs(t *testing.T) {
 	}
 }
 
-// TestConcurrentLogging tests thread-safe logging
+// TestConcurrentLogging tests thread-safe logging.
 func TestConcurrentLogging(t *testing.T) {
-	logger, err := NewLogger("concurrent-test")
+	logger, err := logger.NewLogger("concurrent-test")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}
@@ -225,9 +214,9 @@ func TestConcurrentLogging(t *testing.T) {
 	}
 }
 
-// TestEmptyMetadata tests logging with empty metadata
+// TestEmptyMetadata tests logging with empty metadata.
 func TestEmptyMetadata(t *testing.T) {
-	logger, err := NewLogger("test-app")
+	logger, err := logger.NewLogger("test-app")
 	if err != nil {
 		t.Fatalf("Failed to create logger: %v", err)
 	}

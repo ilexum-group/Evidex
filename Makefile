@@ -4,9 +4,9 @@
 
 # Go parameters
 GOCMD=go
-GOBUILD=$(GOCMD) build
+GOBUILD=$(GOCMD) build -mod=vendor
 GOCLEAN=$(GOCMD) clean
-GOTEST=$(GOCMD) test
+GOTEST=$(GOCMD) test -mod=vendor
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 
@@ -35,15 +35,15 @@ deps:
 
 # Run tests
 test:
-	$(GOTEST) -v ./...
+	$(GOTEST) -v ./tests/...
 
 # Run tests with race condition detection
 test-race:
-	$(GOTEST) -v -race ./...
+	$(GOTEST) -v -race ./tests/...
 
 # Run tests with coverage
 test-coverage:
-	$(GOTEST) -v -race -covermode=atomic -coverprofile=coverage.out ./...
+	$(GOTEST) -v -race -covermode=atomic -coverprofile=coverage.out ./tests/...
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 

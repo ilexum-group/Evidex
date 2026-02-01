@@ -30,11 +30,16 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
+    - name: Verify vendor
+      run: |
+        go mod vendor
+        go mod verify
+
     - name: Run tests
-      run: go test -v ./...
+      run: go test -mod=vendor -v ./tests/...
 
     - name: Run tests with coverage
-      run: go test -coverprofile=coverage.out ./...
+      run: go test -mod=vendor -coverprofile=coverage.out ./tests/...
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
@@ -70,7 +75,7 @@ jobs:
       run: go mod verify
 
     - name: Build application
-      run: go build -v ./cmd/evidex
+      run: go build -mod=vendor -v ./cmd/evidex
 
     - name: Check formatting
       run: |
@@ -81,7 +86,7 @@ jobs:
         fi
 
     - name: Run go vet
-      run: go vet ./...
+      run: go vet -mod=vendor ./...
 
     - name: Run govulncheck
       uses: golang/govulncheck-action@v1

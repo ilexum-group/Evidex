@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/models"
 	"golang.org/x/sys/windows"
 )
 

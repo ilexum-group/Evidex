@@ -1,13 +1,14 @@
-package metadata
+package tests
 
 import (
 	"os"
 	"testing"
 
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/metadata"
+	"github.com/ilexum/evidex/internal/models"
 )
 
-// TestExtractFileMetadata tests metadata extraction for regular files
+// TestExtractFileMetadata tests metadata extraction for regular files.
 func TestExtractFileMetadata(t *testing.T) {
 	// Create test file
 	tmpfile, err := os.CreateTemp("", "test-*.txt")
@@ -30,9 +31,9 @@ func TestExtractFileMetadata(t *testing.T) {
 		t.Fatalf("Failed to write test data: %v", err)
 	}
 
-	metadata, err := ExtractFileMetadata(tmpfile.Name())
+	metadata, err := metadata.ExtractFileMetadata(tmpfile.Name())
 	if err != nil {
-		t.Fatalf("ExtractFileMetadata() error = %v", err)
+		t.Fatalf("metadata.ExtractFileMetadata() error = %v", err)
 	}
 
 	if metadata.SourcePath == "" {
@@ -48,7 +49,7 @@ func TestExtractFileMetadata(t *testing.T) {
 	}
 }
 
-// TestExtractFileMetadataDirectory tests metadata extraction for directories
+// TestExtractFileMetadataDirectory tests metadata extraction for directories.
 func TestExtractFileMetadataDirectory(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-dir-*")
 	if err != nil {
@@ -60,9 +61,9 @@ func TestExtractFileMetadataDirectory(t *testing.T) {
 		}
 	}()
 
-	metadata, err := ExtractFileMetadata(tmpdir)
+	metadata, err := metadata.ExtractFileMetadata(tmpdir)
 	if err != nil {
-		t.Fatalf("ExtractFileMetadata() error = %v", err)
+		t.Fatalf("metadata.ExtractFileMetadata() error = %v", err)
 	}
 
 	if metadata.IsSymlink {
@@ -76,7 +77,7 @@ func TestExtractFileMetadataDirectory(t *testing.T) {
 	}
 }
 
-// TestCalculateFileHashes tests hash calculation
+// TestCalculateFileHashes tests hash calculation.
 func TestCalculateFileHashes(t *testing.T) {
 	tmpfile, err := os.CreateTemp("", "test-*.txt")
 	if err != nil {
@@ -97,9 +98,9 @@ func TestCalculateFileHashes(t *testing.T) {
 		t.Fatalf("Failed to write test data: %v", err)
 	}
 
-	hashes, err := CalculateFileHashes(tmpfile.Name())
+	hashes, err := metadata.CalculateFileHashes(tmpfile.Name())
 	if err != nil {
-		t.Fatalf("CalculateFileHashes() error = %v", err)
+		t.Fatalf("metadata.CalculateFileHashes() error = %v", err)
 	}
 
 	if hashes.SHA256 == "" {
@@ -115,7 +116,7 @@ func TestCalculateFileHashes(t *testing.T) {
 	}
 }
 
-// TestVerifyFileIntegrity tests file integrity verification
+// TestVerifyFileIntegrity tests file integrity verification.
 func TestVerifyFileIntegrity(t *testing.T) {
 	tmpfile, err := os.CreateTemp("", "test-*.txt")
 	if err != nil {
@@ -136,13 +137,13 @@ func TestVerifyFileIntegrity(t *testing.T) {
 		t.Fatalf("Failed to write test data: %v", err)
 	}
 
-	hashes, err := CalculateFileHashes(tmpfile.Name())
+	hashes, err := metadata.CalculateFileHashes(tmpfile.Name())
 	if err != nil {
 		t.Fatalf("Failed to calculate hashes: %v", err)
 	}
 
 	// Test with correct hash
-	err = VerifyFileIntegrity(tmpfile.Name(), hashes)
+	err = metadata.VerifyFileIntegrity(tmpfile.Name(), hashes)
 	if err != nil {
 		t.Error("Expected file integrity verification to succeed with correct hash")
 	}
@@ -151,13 +152,13 @@ func TestVerifyFileIntegrity(t *testing.T) {
 	wrongHashes := &models.FileHashes{
 		SHA256: "0000000000000000000000000000000000000000000000000000000000000000",
 	}
-	err = VerifyFileIntegrity(tmpfile.Name(), wrongHashes)
+	err = metadata.VerifyFileIntegrity(tmpfile.Name(), wrongHashes)
 	if err == nil {
 		t.Error("Expected file integrity verification to fail with incorrect hash")
 	}
 }
 
-// TestImageFormatDetection tests image format detection
+// TestImageFormatDetection tests image format detection.
 func TestImageFormatDetection(t *testing.T) {
 	tests := []struct {
 		name        string

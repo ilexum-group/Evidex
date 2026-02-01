@@ -1,13 +1,15 @@
-package acquisition
+package tests
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/ilexum/evidex/internal/acquisition"
 )
 
-// TestNewAcquirer tests Acquirer initialization
+// TestNewAcquirer tests Acquirer initialization.
 func TestNewAcquirer(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -19,7 +21,7 @@ func TestNewAcquirer(t *testing.T) {
 		}
 	}()
 
-	acq := NewAcquirer(tmpdir)
+	acq := acquisition.NewAcquirer(tmpdir)
 
 	if acq == nil {
 		t.Error("Expected Acquirer to be non-nil")
@@ -30,7 +32,7 @@ func TestNewAcquirer(t *testing.T) {
 	}
 }
 
-// TestAcquireFile tests single file acquisition
+// TestAcquireFile tests single file acquisition.
 func TestAcquireFile(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -44,11 +46,11 @@ func TestAcquireFile(t *testing.T) {
 
 	// Create test file
 	testfile := filepath.Join(tmpdir, "test.txt")
-	if err := os.WriteFile(testfile, []byte("test content"), 0644); err != nil {
+	if err := os.WriteFile(testfile, []byte("test content"), 0600); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	acq := NewAcquirer(tmpdir)
+	acq := acquisition.NewAcquirer(tmpdir)
 	if err := acq.AcquireFile(testfile); err != nil {
 		t.Logf("AcquireFile warning: %v", err)
 	}
@@ -58,7 +60,7 @@ func TestAcquireFile(t *testing.T) {
 	}
 }
 
-// TestAcquireDirectory tests directory acquisition
+// TestAcquireDirectory tests directory acquisition.
 func TestAcquireDirectory(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -73,14 +75,14 @@ func TestAcquireDirectory(t *testing.T) {
 	// Create test files
 	testfile1 := filepath.Join(tmpdir, "test1.txt")
 	testfile2 := filepath.Join(tmpdir, "test2.txt")
-	if err := os.WriteFile(testfile1, []byte("content1"), 0644); err != nil {
+	if err := os.WriteFile(testfile1, []byte("content1"), 0600); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
-	if err := os.WriteFile(testfile2, []byte("content2"), 0644); err != nil {
+	if err := os.WriteFile(testfile2, []byte("content2"), 0600); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	acq := NewAcquirer(tmpdir)
+	acq := acquisition.NewAcquirer(tmpdir)
 	if err := acq.AcquireDirectory(tmpdir, false); err != nil {
 		t.Logf("AcquireDirectory warning: %v", err)
 	}
@@ -90,7 +92,7 @@ func TestAcquireDirectory(t *testing.T) {
 	}
 }
 
-// TestAcquireDirectoryRecursive tests recursive directory acquisition
+// TestAcquireDirectoryRecursive tests recursive directory acquisition.
 func TestAcquireDirectoryRecursive(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -104,21 +106,21 @@ func TestAcquireDirectoryRecursive(t *testing.T) {
 
 	// Create nested directory structure
 	subdir := filepath.Join(tmpdir, "subdir")
-	if err := os.Mkdir(subdir, 0755); err != nil {
+	if err := os.Mkdir(subdir, 0750); err != nil {
 		t.Fatalf("Failed to create subdirectory: %v", err)
 	}
 
 	// Create files at different levels
 	rootfile := filepath.Join(tmpdir, "root.txt")
 	subfile := filepath.Join(subdir, "sub.txt")
-	if err := os.WriteFile(rootfile, []byte("root"), 0644); err != nil {
+	if err := os.WriteFile(rootfile, []byte("root"), 0600); err != nil {
 		t.Fatalf("Failed to create root file: %v", err)
 	}
-	if err := os.WriteFile(subfile, []byte("sub"), 0644); err != nil {
+	if err := os.WriteFile(subfile, []byte("sub"), 0600); err != nil {
 		t.Fatalf("Failed to create sub file: %v", err)
 	}
 
-	acq := NewAcquirer(tmpdir)
+	acq := acquisition.NewAcquirer(tmpdir)
 	if err := acq.AcquireDirectory(tmpdir, true); err != nil {
 		t.Logf("AcquireDirectory warning: %v", err)
 	}
@@ -128,7 +130,7 @@ func TestAcquireDirectoryRecursive(t *testing.T) {
 	}
 }
 
-// TestGetEvidencePackage tests package assembly
+// TestGetEvidencePackage tests package assembly.
 func TestGetEvidencePackage(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -142,11 +144,11 @@ func TestGetEvidencePackage(t *testing.T) {
 
 	// Create test file
 	testfile := filepath.Join(tmpdir, "test.txt")
-	if err := os.WriteFile(testfile, []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(testfile, []byte("test"), 0600); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	acq := NewAcquirer(tmpdir)
+	acq := acquisition.NewAcquirer(tmpdir)
 	if err := acq.AcquireFile(testfile); err != nil {
 		t.Logf("AcquireFile warning: %v", err)
 	}
@@ -171,7 +173,7 @@ func TestGetEvidencePackage(t *testing.T) {
 	}
 }
 
-// TestSetHashAlgorithm tests hash algorithm configuration
+// TestSetHashAlgorithm tests hash algorithm configuration.
 func TestSetHashAlgorithm(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -183,7 +185,7 @@ func TestSetHashAlgorithm(t *testing.T) {
 		}
 	}()
 
-	acq := NewAcquirer(tmpdir)
+	acq := acquisition.NewAcquirer(tmpdir)
 	acq.SetHashAlgorithm("sha512")
 
 	// Algorithm should be set (verified through acquisition)
@@ -192,7 +194,7 @@ func TestSetHashAlgorithm(t *testing.T) {
 	}
 }
 
-// TestCopyFilesToPackage tests file copying to package
+// TestCopyFilesToPackage tests file copying to package.
 func TestCopyFilesToPackage(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -205,17 +207,17 @@ func TestCopyFilesToPackage(t *testing.T) {
 	}()
 
 	outputdir := filepath.Join(tmpdir, "output")
-	if err := os.Mkdir(outputdir, 0755); err != nil {
+	if err := os.Mkdir(outputdir, 0750); err != nil {
 		t.Fatalf("Failed to create output directory: %v", err)
 	}
 
 	// Create test file
 	testfile := filepath.Join(tmpdir, "test.txt")
-	if err := os.WriteFile(testfile, []byte("test content"), 0644); err != nil {
+	if err := os.WriteFile(testfile, []byte("test content"), 0600); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	acq := NewAcquirer(outputdir)
+	acq := acquisition.NewAcquirer(outputdir)
 	if err := acq.AcquireFile(testfile); err != nil {
 		t.Logf("AcquireFile warning: %v", err)
 	}
@@ -230,7 +232,7 @@ func TestCopyFilesToPackage(t *testing.T) {
 	}
 }
 
-// TestGetFileCount tests file count accessor
+// TestGetFileCount tests file count accessor.
 func TestGetFileCount(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -242,7 +244,7 @@ func TestGetFileCount(t *testing.T) {
 		}
 	}()
 
-	acq := NewAcquirer(tmpdir)
+	acq := acquisition.NewAcquirer(tmpdir)
 
 	// Initial count should be 0
 	if acq.GetFileCount() != 0 {
@@ -252,7 +254,7 @@ func TestGetFileCount(t *testing.T) {
 	// Create and acquire files
 	for i := 0; i < 3; i++ {
 		testfile := filepath.Join(tmpdir, fmt.Sprintf("test%d.txt", i))
-		if err := os.WriteFile(testfile, []byte("content"), 0644); err != nil {
+		if err := os.WriteFile(testfile, []byte("content"), 0600); err != nil {
 			t.Fatalf("Failed to create test file: %v", err)
 		}
 		if err := acq.AcquireFile(testfile); err != nil {
@@ -265,7 +267,7 @@ func TestGetFileCount(t *testing.T) {
 	}
 }
 
-// TestGetTotalSize tests total size calculator
+// TestGetTotalSize tests total size calculator.
 func TestGetTotalSize(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -277,12 +279,12 @@ func TestGetTotalSize(t *testing.T) {
 		}
 	}()
 
-	acq := NewAcquirer(tmpdir)
+	acq := acquisition.NewAcquirer(tmpdir)
 
 	// Create test files with known sizes
 	testfile := filepath.Join(tmpdir, "test.txt")
 	testdata := []byte("12345678")
-	if err := os.WriteFile(testfile, testdata, 0644); err != nil {
+	if err := os.WriteFile(testfile, testdata, 0600); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 

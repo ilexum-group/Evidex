@@ -3,7 +3,7 @@ package video
 import (
 	"os"
 
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/models"
 )
 
 // MOVExtractor implements metadata extraction for QuickTime MOV videos

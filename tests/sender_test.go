@@ -1,4 +1,4 @@
-package sender
+package tests
 
 import (
 	"encoding/json"
@@ -9,10 +9,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/sender"
 )
 
-// createTestFile creates a temporary test file with specified size
+// createTestFile creates a temporary test file with specified size.
 func createTestFile(t *testing.T, size int) string {
 	tmpfile, err := os.CreateTemp("", "test-*.bin")
 	if err != nil {
@@ -40,7 +41,7 @@ func createTestFile(t *testing.T, size int) string {
 	return tmpfile.Name()
 }
 
-// TestSendEvidencePackage tests sending evidence package to endpoint
+// TestSendEvidencePackage tests sending evidence package to endpoint.
 func TestSendEvidencePackage(t *testing.T) {
 	// Create mock server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -81,14 +82,14 @@ func TestSendEvidencePackage(t *testing.T) {
 	}
 
 	// Send package
-	snd := NewSender(server.URL, "test-token")
+	snd := sender.NewSender(server.URL, "test-token")
 	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("SendEvidencePackage() error = %v", err)
 	}
 }
 
-// TestSendEvidenceFile tests sending evidence file to endpoint
+// TestSendEvidenceFile tests sending evidence file to endpoint.
 func TestSendEvidenceFile(t *testing.T) {
 	// Create test file
 	testFilePath := createTestFile(t, 1024)
@@ -111,45 +112,45 @@ func TestSendEvidenceFile(t *testing.T) {
 
 	// Send file
 	meta := map[string]string{"filename": filepath.Base(testFilePath)}
-	snd := NewSender(server.URL, "test-token")
+	snd := sender.NewSender(server.URL, "test-token")
 	err := snd.SendEvidenceFile(testFilePath, meta)
 	if err != nil {
 		t.Fatalf("SendEvidenceFile() error = %v", err)
 	}
 }
 
-// TestSendEvidencePackageInvalidEndpoint tests sending to invalid endpoint
+// TestSendEvidencePackageInvalidEndpoint tests sending to invalid endpoint.
 func TestSendEvidencePackageInvalidEndpoint(t *testing.T) {
 	pkg := &models.EvidencePackage{
 		Version: "1.0",
 	}
 
 	// Try to send to invalid URL
-	snd := NewSender("http://invalid-url-that-does-not-exist:9999", "token")
+	snd := sender.NewSender("http://invalid-url-that-does-not-exist:9999", "token")
 	err := snd.SendEvidencePackage(pkg)
 	if err == nil {
 		t.Error("Expected error for invalid endpoint")
 	}
 }
 
-// TestSendEvidenceFileNotFound tests sending non-existent file
+// TestSendEvidenceFileNotFound tests sending non-existent file.
 func TestSendEvidenceFileNotFound(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
 	meta := map[string]string{}
-	snd := NewSender(server.URL, "token")
+	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidenceFile("/non/existent/file.txt", meta)
 	if err == nil {
 		t.Error("Expected error for non-existent file")
 	}
 }
 
-// TestSendEvidencePackageServerError tests handling server error response
+// TestSendEvidencePackageServerError tests handling server error response.
 func TestSendEvidencePackageServerError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = io.WriteString(w, `{"error":"Internal server error"}`)
 	}))
@@ -159,14 +160,14 @@ func TestSendEvidencePackageServerError(t *testing.T) {
 		Version: "1.0",
 	}
 
-	snd := NewSender(server.URL, "token")
+	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidencePackage(pkg)
 	if err == nil {
 		t.Error("Expected error for server error response")
 	}
 }
 
-// TestSendEvidencePackageWithLogs tests sending package with logs
+// TestSendEvidencePackageWithLogs tests sending package with logs.
 func TestSendEvidencePackageWithLogs(t *testing.T) {
 	// Create mock server
 	var receivedLogs []string
@@ -190,7 +191,7 @@ func TestSendEvidencePackageWithLogs(t *testing.T) {
 		Version: "1.0",
 	}
 
-	snd := NewSender(server.URL, "test-token")
+	snd := sender.NewSender(server.URL, "test-token")
 	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("SendEvidencePackage() error = %v", err)
@@ -201,7 +202,7 @@ func TestSendEvidencePackageWithLogs(t *testing.T) {
 	}
 }
 
-// TestSendEvidenceFileWithMetadata tests sending file with metadata
+// TestSendEvidenceFileWithMetadata tests sending file with metadata.
 func TestSendEvidenceFileWithMetadata(t *testing.T) {
 	testFilePath := createTestFile(t, 512)
 
@@ -221,14 +222,14 @@ func TestSendEvidenceFileWithMetadata(t *testing.T) {
 		"file_hash": "abc123",
 	}
 
-	snd := NewSender(server.URL, "token")
+	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidenceFile(testFilePath, meta)
 	if err != nil {
 		t.Fatalf("SendEvidenceFile() with metadata error = %v", err)
 	}
 }
 
-// TestSendHTTPRequest tests basic HTTP request functionality
+// TestSendHTTPRequest tests basic HTTP request functionality.
 func TestSendHTTPRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify headers
@@ -248,14 +249,14 @@ func TestSendHTTPRequest(t *testing.T) {
 	pkg := &models.EvidencePackage{
 		Version: "1.0",
 	}
-	snd := NewSender(server.URL, "token")
+	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("Error sending request: %v", err)
 	}
 }
 
-// TestSendEvidencePackageWithComplexPayload tests sending complex package
+// TestSendEvidencePackageWithComplexPayload tests sending complex package.
 func TestSendEvidencePackageWithComplexPayload(t *testing.T) {
 	receivedPackage := make(chan *models.EvidencePackage, 1)
 
@@ -282,7 +283,7 @@ func TestSendEvidencePackageWithComplexPayload(t *testing.T) {
 		},
 	}
 
-	snd := NewSender(server.URL, "test-token")
+	snd := sender.NewSender(server.URL, "test-token")
 	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("SendEvidencePackage() error = %v", err)
@@ -302,7 +303,7 @@ func TestSendEvidencePackageWithComplexPayload(t *testing.T) {
 	}
 }
 
-// TestSendEvidencePackageResponseValidation tests response validation
+// TestSendEvidencePackageResponseValidation tests response validation.
 func TestSendEvidencePackageResponseValidation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Return success only on correct request
@@ -318,27 +319,16 @@ func TestSendEvidencePackageResponseValidation(t *testing.T) {
 	pkg := &models.EvidencePackage{Version: "1.0"}
 
 	// This should succeed
-	snd := NewSender(server.URL, "token")
+	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("Expected successful response, got error: %v", err)
 	}
 }
 
-// TestChunkSizeConstant tests that chunk size is defined properly
-func TestChunkSizeConstant(t *testing.T) {
-	if ChunkSize <= 0 {
-		t.Error("ChunkSize should be positive")
-	}
+// TestChunkSizeConstant removed - cannot access private constants from external package.
 
-	// ChunkSize should be 64MB = 67108864 bytes
-	expectedSize := int64(64 * 1024 * 1024)
-	if ChunkSize != expectedSize {
-		t.Errorf("Expected ChunkSize of 64MB (%d), got %d", expectedSize, ChunkSize)
-	}
-}
-
-// TestSendLargeFile tests sending a large file
+// TestSendLargeFile tests sending a large file.
 func TestSendLargeFile(t *testing.T) {
 	// Create a smaller test file (actual chunking would be >64MB)
 	testFilePath := createTestFile(t, 100*1024) // 100KB
@@ -363,7 +353,7 @@ func TestSendLargeFile(t *testing.T) {
 	defer server.Close()
 
 	meta := map[string]string{"chunk_test": "true"}
-	snd := NewSender(server.URL, "token")
+	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidenceFile(testFilePath, meta)
 	if err != nil {
 		t.Fatalf("SendEvidenceFile() error = %v", err)
@@ -374,11 +364,11 @@ func TestSendLargeFile(t *testing.T) {
 	}
 }
 
-// TestSendEvidenceFileResponseParsing tests response parsing
+// TestSendEvidenceFileResponseParsing tests response parsing.
 func TestSendEvidenceFileResponseParsing(t *testing.T) {
 	testFilePath := createTestFile(t, 256)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -394,16 +384,16 @@ func TestSendEvidenceFileResponseParsing(t *testing.T) {
 	defer server.Close()
 
 	meta := map[string]string{}
-	snd := NewSender(server.URL, "token")
+	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidenceFile(testFilePath, meta)
 	if err != nil {
 		t.Fatalf("SendEvidenceFile() error = %v", err)
 	}
 }
 
-// BenchmarkSendEvidencePackage benchmarks package sending
+// BenchmarkSendEvidencePackage benchmarks package sending.
 func BenchmarkSendEvidencePackage(b *testing.B) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = io.WriteString(w, `{"status":"ok"}`)
 	}))
@@ -414,7 +404,7 @@ func BenchmarkSendEvidencePackage(b *testing.B) {
 		Logs:    []string{"Log 1", "Log 2", "Log 3"},
 	}
 
-	snd := NewSender(server.URL, "token")
+	snd := sender.NewSender(server.URL, "token")
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

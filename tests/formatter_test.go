@@ -1,4 +1,4 @@
-package formatter
+package tests
 
 import (
 	"encoding/json"
@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/formatter"
+	"github.com/ilexum/evidex/internal/models"
 )
 
-// TestNewPackageFormatter tests PackageFormatter initialization
+// TestNewPackageFormatter tests PackageFormatter initialization.
 func TestNewPackageFormatter(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -28,14 +29,14 @@ func TestNewPackageFormatter(t *testing.T) {
 		},
 	}
 
-	formatter := NewPackageFormatter(tmpdir, pkg)
+	formatter := formatter.NewPackageFormatter(tmpdir, pkg)
 
 	if formatter == nil {
 		t.Error("Expected PackageFormatter to be non-nil")
 	}
 }
 
-// TestExportJSON tests JSON export functionality
+// TestExportJSON tests JSON export functionality.
 func TestExportJSON(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -75,7 +76,7 @@ func TestExportJSON(t *testing.T) {
 		},
 	}
 
-	formatter := NewPackageFormatter(tmpdir, pkg)
+	formatter := formatter.NewPackageFormatter(tmpdir, pkg)
 	err = formatter.ExportJSON()
 
 	if err != nil {
@@ -89,6 +90,7 @@ func TestExportJSON(t *testing.T) {
 	}
 
 	// Verify it's valid JSON
+	// #nosec G304 -- manifestPath is constructed from controlled test directory
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
 		t.Fatalf("Failed to read manifest.json: %v", err)
@@ -100,7 +102,7 @@ func TestExportJSON(t *testing.T) {
 	}
 }
 
-// TestExportCSV tests CSV export functionality
+// TestExportCSV tests CSV export functionality.
 func TestExportCSV(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -130,7 +132,7 @@ func TestExportCSV(t *testing.T) {
 		},
 	}
 
-	formatter := NewPackageFormatter(tmpdir, pkg)
+	formatter := formatter.NewPackageFormatter(tmpdir, pkg)
 	err = formatter.ExportCSV()
 
 	if err != nil {
@@ -144,7 +146,7 @@ func TestExportCSV(t *testing.T) {
 	}
 }
 
-// TestExportHashes tests hash file export
+// TestExportHashes tests hash file export.
 func TestExportHashes(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -171,7 +173,7 @@ func TestExportHashes(t *testing.T) {
 		},
 	}
 
-	formatter := NewPackageFormatter(tmpdir, pkg)
+	formatter := formatter.NewPackageFormatter(tmpdir, pkg)
 	err = formatter.ExportHashes()
 
 	if err != nil {
@@ -185,7 +187,7 @@ func TestExportHashes(t *testing.T) {
 	}
 }
 
-// TestExportIntegrityReport tests integrity report export
+// TestExportIntegrityReport tests integrity report export.
 func TestExportIntegrityReport(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -236,7 +238,7 @@ func TestExportIntegrityReport(t *testing.T) {
 		},
 	}
 
-	formatter := NewPackageFormatter(tmpdir, pkg)
+	formatter := formatter.NewPackageFormatter(tmpdir, pkg)
 	err = formatter.ExportIntegrityReport()
 
 	if err != nil {
@@ -250,7 +252,7 @@ func TestExportIntegrityReport(t *testing.T) {
 	}
 }
 
-// TestCreateReadme tests README generation
+// TestCreateReadme tests README generation.
 func TestCreateReadme(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -279,7 +281,7 @@ func TestCreateReadme(t *testing.T) {
 		},
 	}
 
-	formatter := NewPackageFormatter(tmpdir, pkg)
+	formatter := formatter.NewPackageFormatter(tmpdir, pkg)
 	err = formatter.CreateReadme()
 
 	if err != nil {
@@ -293,7 +295,7 @@ func TestCreateReadme(t *testing.T) {
 	}
 }
 
-// TestCalculatePackageHash tests package hash calculation
+// TestCalculatePackageHash tests package hash calculation.
 func TestCalculatePackageHash(t *testing.T) {
 	pkg := &models.EvidencePackage{
 		Manifest: &models.ChainOfCustodyManifest{
@@ -301,7 +303,7 @@ func TestCalculatePackageHash(t *testing.T) {
 		},
 	}
 
-	formatter := NewPackageFormatter("", pkg)
+	formatter := formatter.NewPackageFormatter("", pkg)
 	hash, err := formatter.CalculatePackageHash()
 
 	if err != nil {
@@ -318,7 +320,7 @@ func TestCalculatePackageHash(t *testing.T) {
 	}
 }
 
-// TestCompressPackage tests package compression listing
+// TestCompressPackage tests package compression listing.
 func TestCompressPackage(t *testing.T) {
 	tmpdir, err := os.MkdirTemp("", "test-*")
 	if err != nil {
@@ -342,7 +344,7 @@ func TestCompressPackage(t *testing.T) {
 		},
 	}
 
-	formatter := NewPackageFormatter(tmpdir, pkg)
+	formatter := formatter.NewPackageFormatter(tmpdir, pkg)
 	err = formatter.CompressPackage("tar.gz")
 
 	if err != nil {

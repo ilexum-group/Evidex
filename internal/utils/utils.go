@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/evidex/internal/logger"
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/logger"
+	"github.com/ilexum/evidex/internal/models"
 )
 
 // LogLevel represents the severity level of a log entry

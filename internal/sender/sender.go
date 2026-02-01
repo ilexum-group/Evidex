@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/evidex/internal/models"
-	"github.com/evidex/internal/utils"
+	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/utils"
 )
 
 const (

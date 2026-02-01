@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// EvdencePackage represents the complete forensic evidence package
+// EvidencePackage represents the complete forensic evidence package
 type EvidencePackage struct {
 	Manifest       *ChainOfCustodyManifest `json:"manifest"`
 	Files          []*FileEvidence         `json:"files"`
@@ -17,26 +17,29 @@ type EvidencePackage struct {
 	Logs           []string                `json:"logs"`       // RFC 5424 syslog entries
 	ServerURL      string                  `json:"server_url"` // Remote endpoint for transmission
 	AuthToken      string                  `json:"auth_token"` // Bearer token for server authentication
+
+	// Custody Chain - Complete digital evidence custody tracking
+	CustodyChain *CustodyChainEntry `json:"custody_chain"`
 }
 
 // ChainOfCustodyManifest records all actions and modifications to the evidence
 type ChainOfCustodyManifest struct {
-	ID                  string      `json:"id"`                   // Unique evidence package identifier
-	CreatedAt           time.Time   `json:"created_at"`           // Package creation timestamp
-	CreatedByUser       string      `json:"created_by_user"`      // User who initiated acquisition
-	CreatedByHostname   string      `json:"created_by_hostname"`  // Hostname where binary ran
-	Signature           string      `json:"signature"`            // HMAC signature of the package
-	FileCount           int         `json:"file_count"`           // Total files in package
-	TotalSize           int64       `json:"total_size"`           // Total size in bytes
-	CompressionMethod   string      `json:"compression_method"`   // Compression algorithm used
-	HashAlgorithm       string      `json:"hash_algorithm"`       // Primary hash algorithm (SHA-256, SHA-512)
-	SecondaryAlgorithm  string      `json:"secondary_algorithm"`  // Secondary hash (optional)
-	AcquisitionMethod   string      `json:"acquisition_method"`   // read-only, file copy, etc.
-	CaseID              string      `json:"case_id"`              // Case identifier for correlation
-	ExaminersNotes      string      `json:"examiners_notes"`      // Additional context
-	Integrity           string      `json:"integrity"`            // Integrity status (verified, unverified)
-	Custodians          []Custodian `json:"custodians"`           // Chain of custody history
-	Hash                string      `json:"hash"`                 // Hash of the entire manifest
+	ID                 string      `json:"id"`                  // Unique evidence package identifier
+	CreatedAt          time.Time   `json:"created_at"`          // Package creation timestamp
+	CreatedByUser      string      `json:"created_by_user"`     // User who initiated acquisition
+	CreatedByHostname  string      `json:"created_by_hostname"` // Hostname where binary ran
+	Signature          string      `json:"signature"`           // HMAC signature of the package
+	FileCount          int         `json:"file_count"`          // Total files in package
+	TotalSize          int64       `json:"total_size"`          // Total size in bytes
+	CompressionMethod  string      `json:"compression_method"`  // Compression algorithm used
+	HashAlgorithm      string      `json:"hash_algorithm"`      // Primary hash algorithm (SHA-256, SHA-512)
+	SecondaryAlgorithm string      `json:"secondary_algorithm"` // Secondary hash (optional)
+	AcquisitionMethod  string      `json:"acquisition_method"`  // read-only, file copy, etc.
+	CaseID             string      `json:"case_id"`             // Case identifier for correlation
+	ExaminersNotes     string      `json:"examiners_notes"`     // Additional context
+	Integrity          string      `json:"integrity"`           // Integrity status (verified, unverified)
+	Custodians         []Custodian `json:"custodians"`          // Chain of custody history
+	Hash               string      `json:"hash"`                // Hash of the entire manifest
 }
 
 // Custodian tracks who had custody of evidence and when
@@ -78,9 +81,10 @@ type FileEvidence struct {
 
 // FileHashes contains cryptographic hashes for integrity verification
 type FileHashes struct {
-	SHA256 string `json:"sha256"` // Primary hash
-	SHA512 string `json:"sha512"` // Secondary hash (optional)
-	MD5    string `json:"md5"`    // For compatibility (not recommended for evidence)
+	MD5    string `json:"md5"`    // MD5 hash (128-bit) - for compatibility with legacy systems
+	SHA1   string `json:"sha1"`   // SHA1 hash (160-bit) - for legacy compatibility
+	SHA256 string `json:"sha256"` // SHA256 hash (256-bit) - primary hash for evidence integrity
+	SHA512 string `json:"sha512"` // SHA512 hash (512-bit) - secondary hash (optional)
 }
 
 // ImageMetadata contains image-specific metadata

@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/evidex/internal/models"
+	"github.com/ilexum/evidex/internal/models"
 )
 
 // WebMExtractor implements metadata extraction for WebM videos

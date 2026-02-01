@@ -1,13 +1,15 @@
-package utils
+package tests
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/ilexum/evidex/internal/utils"
 )
 
-// createTempTestFile is a helper function to create temporary test files
+// createTempTestFile is a helper function to create temporary test files.
 func createTempTestFile(t *testing.T, data []byte) string {
 	tmpfile, err := os.CreateTemp("", "test-*.txt")
 	if err != nil {
@@ -27,13 +29,13 @@ func createTempTestFile(t *testing.T, data []byte) string {
 	return tmpfile.Name()
 }
 
-// TestCalculateSHA256 tests SHA256 hash calculation
+// Testutils.CalculateSHA256 tests SHA256 hash calculation.
 func TestCalculateSHA256(t *testing.T) {
 	path := createTempTestFile(t, []byte("test data for hashing"))
 
-	hash, err := CalculateSHA256(path)
+	hash, err := utils.CalculateSHA256(path)
 	if err != nil {
-		t.Fatalf("CalculateSHA256() error = %v", err)
+		t.Fatalf("utils.CalculateSHA256() error = %v", err)
 	}
 
 	if hash == "" {
@@ -45,13 +47,13 @@ func TestCalculateSHA256(t *testing.T) {
 	}
 }
 
-// TestCalculateSHA512 tests SHA512 hash calculation
+// Testutils.CalculateSHA512 tests SHA512 hash calculation.
 func TestCalculateSHA512(t *testing.T) {
 	path := createTempTestFile(t, []byte("test data for sha512"))
 
-	hash, err := CalculateSHA512(path)
+	hash, err := utils.CalculateSHA512(path)
 	if err != nil {
-		t.Fatalf("CalculateSHA512() error = %v", err)
+		t.Fatalf("utils.CalculateSHA512() error = %v", err)
 	}
 
 	if hash == "" {
@@ -63,13 +65,13 @@ func TestCalculateSHA512(t *testing.T) {
 	}
 }
 
-// TestCalculateMD5 tests MD5 hash calculation
+// Testutils.CalculateMD5 tests MD5 hash calculation.
 func TestCalculateMD5(t *testing.T) {
 	path := createTempTestFile(t, []byte("test md5"))
 
-	hash, err := CalculateMD5(path)
+	hash, err := utils.CalculateMD5(path)
 	if err != nil {
-		t.Fatalf("CalculateMD5() error = %v", err)
+		t.Fatalf("utils.CalculateMD5() error = %v", err)
 	}
 
 	if hash == "" {
@@ -81,7 +83,7 @@ func TestCalculateMD5(t *testing.T) {
 	}
 }
 
-// TestVerifyHash tests hash verification
+// TestVerifyHash tests hash verification.
 func TestVerifyHash(t *testing.T) {
 	tmpfile, err := os.CreateTemp("", "test-*.txt")
 	if err != nil {
@@ -101,32 +103,32 @@ func TestVerifyHash(t *testing.T) {
 		t.Logf("Failed to close temp file: %v", err)
 	}
 
-	// Calculate correct hash
-	correctHash, err := CalculateSHA256(tmpfile.Name())
+	// utils.Calculate correct hash
+	correctHash, err := utils.CalculateSHA256(tmpfile.Name())
 	if err != nil {
-		t.Fatalf("Failed to calculate hash: %v", err)
+		t.Fatalf("Failed to utils.Calculate hash: %v", err)
 	}
 
 	// Test with correct hash
-	verified, err := VerifyHash(tmpfile.Name(), correctHash, "SHA-256")
+	verified, err := utils.VerifyHash(tmpfile.Name(), correctHash, "SHA-256")
 	if err != nil {
-		t.Fatalf("VerifyHash() error = %v", err)
+		t.Fatalf("utils.VerifyHash() error = %v", err)
 	}
 	if !verified {
 		t.Error("Expected verification to succeed with correct hash")
 	}
 
 	// Test with incorrect hash
-	verified, err = VerifyHash(tmpfile.Name(), "0000000000000000000000000000000000000000000000000000000000000000", "SHA-256")
+	verified, err = utils.VerifyHash(tmpfile.Name(), "0000000000000000000000000000000000000000000000000000000000000000", "SHA-256")
 	if err != nil {
-		t.Fatalf("VerifyHash() error = %v", err)
+		t.Fatalf("utils.VerifyHash() error = %v", err)
 	}
 	if verified {
 		t.Error("Expected verification to fail with incorrect hash")
 	}
 }
 
-// TestIsReadOnly tests read-only file verification
+// TestIsReadOnly tests read-only file verification.
 func TestIsReadOnly(t *testing.T) {
 	// Create test file
 	tmpfile, err := os.CreateTemp("", "test-*.txt")
@@ -143,16 +145,16 @@ func TestIsReadOnly(t *testing.T) {
 	}
 
 	// Readable file should return true
-	readable, err := IsReadOnly(tmpfile.Name())
+	readable, err := utils.IsReadOnly(tmpfile.Name())
 	if err != nil {
-		t.Fatalf("IsReadOnly() error = %v", err)
+		t.Fatalf("utils.IsReadOnly() error = %v", err)
 	}
 	if !readable {
 		t.Error("Expected file to be readable")
 	}
 
 	// Non-existent file should return error
-	readable, err = IsReadOnly("/nonexistent/path/to/file")
+	readable, err = utils.IsReadOnly("/nonexistent/path/to/file")
 	if err == nil {
 		t.Error("Expected error for non-existent file")
 	}
@@ -161,13 +163,13 @@ func TestIsReadOnly(t *testing.T) {
 	}
 }
 
-// TestEnsureDirectory tests directory creation
+// TestEnsureDirectory tests directory creation.
 func TestEnsureDirectory(t *testing.T) {
 	tmpdir := filepath.Join(os.TempDir(), "evidex-test-"+time.Now().Format("20060102150405"))
 
-	err := EnsureDirectory(tmpdir)
+	err := utils.EnsureDirectory(tmpdir)
 	if err != nil {
-		t.Fatalf("EnsureDirectory() error = %v", err)
+		t.Fatalf("utils.EnsureDirectory() error = %v", err)
 	}
 	defer func() {
 		if err := os.RemoveAll(tmpdir); err != nil {
@@ -186,13 +188,13 @@ func TestEnsureDirectory(t *testing.T) {
 	}
 
 	// Second call should succeed (already exists)
-	err = EnsureDirectory(tmpdir)
+	err = utils.EnsureDirectory(tmpdir)
 	if err != nil {
-		t.Fatalf("EnsureDirectory() on existing directory error = %v", err)
+		t.Fatalf("utils.EnsureDirectory() on existing directory error = %v", err)
 	}
 }
 
-// TestGetFileTypeFromExtension tests MIME type detection
+// TestGetFileTypeFromExtension tests MIME type detection.
 func TestGetFileTypeFromExtension(t *testing.T) {
 	tests := []struct {
 		filename string
@@ -207,15 +209,15 @@ func TestGetFileTypeFromExtension(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.filename, func(t *testing.T) {
-			mimeType := GetFileTypeFromExtension(tt.filename)
+			mimeType := utils.GetFileTypeFromExtension(tt.filename)
 			if mimeType != tt.expected {
-				t.Errorf("GetFileTypeFromExtension(%s) = %s, want %s", tt.filename, mimeType, tt.expected)
+				t.Errorf("utils.GetFileTypeFromExtension(%s) = %s, want %s", tt.filename, mimeType, tt.expected)
 			}
 		})
 	}
 }
 
-// TestIsImageFile tests image file detection
+// TestIsImageFile tests image file detection.
 func TestIsImageFile(t *testing.T) {
 	tests := []struct {
 		filename string
@@ -229,15 +231,15 @@ func TestIsImageFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.filename, func(t *testing.T) {
-			result := IsImageFile(tt.filename)
+			result := utils.IsImageFile(tt.filename)
 			if result != tt.expected {
-				t.Errorf("IsImageFile(%s) = %v, want %v", tt.filename, result, tt.expected)
+				t.Errorf("utils.IsImageFile(%s) = %v, want %v", tt.filename, result, tt.expected)
 			}
 		})
 	}
 }
 
-// TestIsVideoFile tests video file detection
+// TestIsVideoFile tests video file detection.
 func TestIsVideoFile(t *testing.T) {
 	tests := []struct {
 		filename string
@@ -251,28 +253,28 @@ func TestIsVideoFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.filename, func(t *testing.T) {
-			result := IsVideoFile(tt.filename)
+			result := utils.IsVideoFile(tt.filename)
 			if result != tt.expected {
-				t.Errorf("IsVideoFile(%s) = %v, want %v", tt.filename, result, tt.expected)
+				t.Errorf("utils.IsVideoFile(%s) = %v, want %v", tt.filename, result, tt.expected)
 			}
 		})
 	}
 }
 
-// TestLogging tests logging functionality
+// TestLogging tests logging functionality.
 func TestLogging(t *testing.T) {
 	// Test new logger signature with map[string]string metadata
-	LogInfo("Test info message", map[string]string{})
-	LogWarn("Test warning message", map[string]string{"test": "value"})
-	LogError("Test error message", map[string]string{"error": "test_error"})
+	utils.LogInfo("Test info message", map[string]string{})
+	utils.LogWarn("Test warning message", map[string]string{"test": "value"})
+	utils.LogError("Test error message", map[string]string{"error": "test_error"})
 
 	// Logging should not panic or error
 	t.Log("Logging functions executed successfully with new RFC 5424 format")
 }
 
-// TestGenerateEvidenceID tests evidence ID generation
+// TestGenerateEvidenceID tests evidence ID generation.
 func TestGenerateEvidenceID(t *testing.T) {
-	id := GenerateEvidenceID()
+	id := utils.GenerateEvidenceID()
 
 	if id == "" {
 		t.Error("Expected non-empty evidence ID")
