@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ilexum/evidex/internal/acquisition"
+	"github.com/ilexum-group/evidex/internal/acquisition"
 )
 
 // TestNewAcquirer tests Acquirer initialization.

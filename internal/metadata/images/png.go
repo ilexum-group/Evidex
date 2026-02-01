@@ -5,7 +5,7 @@ import (
 	_ "image/png" // Register PNG format
 	"os"
 
-	"github.com/ilexum/evidex/internal/models"
+	"github.com/ilexum-group/evidex/internal/models"
 )
 
 // PNGExtractor implements metadata extraction for PNG images

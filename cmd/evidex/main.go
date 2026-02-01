@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ilexum/evidex/internal/acquisition"
-	"github.com/ilexum/evidex/internal/config"
-	"github.com/ilexum/evidex/internal/formatter"
-	"github.com/ilexum/evidex/internal/models"
-	"github.com/ilexum/evidex/internal/sender"
-	"github.com/ilexum/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/internal/acquisition"
+	"github.com/ilexum-group/evidex/internal/config"
+	"github.com/ilexum-group/evidex/internal/formatter"
+	"github.com/ilexum-group/evidex/internal/models"
+	"github.com/ilexum-group/evidex/internal/sender"
+	"github.com/ilexum-group/evidex/internal/utils"
 )
 
 const (

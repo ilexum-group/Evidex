@@ -1,4 +1,4 @@
-module github.com/ilexum/evidex
+module github.com/ilexum-group/evidex
 
 go 1.25
 
