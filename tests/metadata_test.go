@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ilexum-group/evidex/internal/metadata"
-	"github.com/ilexum-group/evidex/internal/models"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
 // TestExtractFileMetadata tests metadata extraction for regular files.

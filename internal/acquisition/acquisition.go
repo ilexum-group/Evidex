@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ilexum-group/evidex/internal/metadata"
-	"github.com/ilexum-group/evidex/internal/models"
 	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
 // Acquirer manages the evidence acquisition process

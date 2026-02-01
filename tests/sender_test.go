@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ilexum-group/evidex/internal/models"
 	"github.com/ilexum-group/evidex/internal/sender"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
 // createTestFile creates a temporary test file with specified size.

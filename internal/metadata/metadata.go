@@ -11,8 +11,8 @@ import (
 	"github.com/ilexum-group/evidex/internal/metadata/images"
 	osmetadata "github.com/ilexum-group/evidex/internal/metadata/os"
 	"github.com/ilexum-group/evidex/internal/metadata/video"
-	"github.com/ilexum-group/evidex/internal/models"
 	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
 // Global extractor registry initialized once

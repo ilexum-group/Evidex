@@ -3,7 +3,7 @@ package video
 import (
 	"os"
 
-	"github.com/ilexum-group/evidex/internal/models"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
 // MP4Extractor implements metadata extraction for MP4 videos

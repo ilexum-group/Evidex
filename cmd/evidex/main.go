@@ -8,9 +8,9 @@ import (
 	"github.com/ilexum-group/evidex/internal/acquisition"
 	"github.com/ilexum-group/evidex/internal/config"
 	"github.com/ilexum-group/evidex/internal/formatter"
-	"github.com/ilexum-group/evidex/internal/models"
 	"github.com/ilexum-group/evidex/internal/sender"
 	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
 const (
