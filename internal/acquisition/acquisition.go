@@ -3,6 +3,7 @@ package acquisition
 
 import (
 	"fmt"
+	"io/fs"
 	stdos "os"
 	"path/filepath"
 	"time"
@@ -83,23 +84,12 @@ func (a *Acquirer) AcquireFile(filePath string) error {
 }
 
 // createFileEvidence creates the basic evidence structure for a file.
-func (a *Acquirer) createFileEvidence(filePath string, fileInfo interface{}) (*models.FileEvidence, error) {
-	// Type assertion for FileInfo interface
-	fi, ok := fileInfo.(interface {
-		Name() string
-		Size() int64
-		Mode() interface{}
-		ModTime() time.Time
-	})
-	if !ok {
-		return nil, fmt.Errorf("invalid fileInfo type")
-	}
-
+func (a *Acquirer) createFileEvidence(filePath string, fileInfo fs.FileInfo) (*models.FileEvidence, error) {
 	evidence := &models.FileEvidence{
 		SourcePath:      filePath,
-		Filename:        fi.Name(),
-		FileSize:        fi.Size(),
-		ModifiedTime:    fi.ModTime(),
+		Filename:        fileInfo.Name(),
+		FileSize:        fileInfo.Size(),
+		ModifiedTime:    fileInfo.ModTime(),
 		AcquisitionTime: time.Now(),
 		FileType:        a.metadataMgr.GetFileTypeFromMimeType(filePath),
 	}
