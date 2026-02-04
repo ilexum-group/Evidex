@@ -1,42 +1,47 @@
+// Package generic provides metadata extraction for generic file formats including executables, archives, and documents.
 package generic
 
 import (
 	"archive/zip"
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// ZIPExtractor implements metadata extraction for ZIP archives
+// ZIPExtractor implements metadata extraction for ZIP archives.
 type ZIPExtractor struct{}
 
-// NewZIPExtractor creates a new ZIP extractor
+// NewZIPExtractor creates a new ZIP extractor.
 func NewZIPExtractor() *ZIPExtractor {
 	return &ZIPExtractor{}
 }
 
-// CanHandle checks if the file is a ZIP archive
+// CanHandle checks if the file is a ZIP archive.
 func (e *ZIPExtractor) CanHandle(filePath string) bool {
 	return IsZIP(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *ZIPExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractDocument(filePath), nil
+// Extract implements MetadataExtractor interface.
+func (e *ZIPExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractDocument(filePath, logCmd), nil
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *ZIPExtractor) GetType() string {
 	return "application/zip"
 }
 
-// ExtractDocument extracts ZIP metadata
-func (e *ZIPExtractor) ExtractDocument(filePath string) map[string]string {
-	return ParseZIP(filePath)
+// ExtractDocument extracts ZIP metadata.
+func (e *ZIPExtractor) ExtractDocument(filePath string, logCmd models.CommandLogger) map[string]string {
+	return ParseZIP(filePath, logCmd)
 }
 
-// IsZIP checks if a file is a ZIP archive by magic bytes
+// IsZIP checks if a file is a ZIP archive by magic bytes.
 func IsZIP(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}
@@ -56,17 +61,35 @@ func IsZIP(filePath string) bool {
 			magic[2] == 0x07 && magic[3] == 0x08)
 }
 
-// ParseZIP extracts metadata from ZIP archives
-func ParseZIP(filePath string) map[string]string {
+// ParseZIP extracts metadata from ZIP archives.
+func ParseZIP(filePath string, logCmd models.CommandLogger) map[string]string {
 	metadata := make(map[string]string)
 	metadata["Type"] = "ZIP Archive"
 
+	startTime := time.Now()
 	reader, err := zip.OpenReader(filePath)
+	endTime := time.Now()
+	exitCode := 0
+	if err != nil {
+		exitCode = 1
+	}
+	if logCmd != nil {
+		logCmd(utils.GenerateRandomID(), "zip.OpenReader", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+	}
 	if err != nil {
 		return metadata
 	}
 	defer func() {
-		_ = reader.Close()
+		startTime := time.Now()
+		err := reader.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "zip.Reader.Close", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	metadata["FileCount"] = fmt.Sprintf("%d", len(reader.File))

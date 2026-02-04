@@ -1,42 +1,47 @@
+// Package generic provides metadata extraction for generic file formats including executables, archives, and documents.
 package generic
 
 import (
 	"debug/elf"
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// ELFExtractor implements metadata extraction for Linux ELF executables
+// ELFExtractor implements metadata extraction for Linux ELF executables.
 type ELFExtractor struct{}
 
-// NewELFExtractor creates a new ELF extractor
+// NewELFExtractor creates a new ELF extractor.
 func NewELFExtractor() *ELFExtractor {
 	return &ELFExtractor{}
 }
 
-// CanHandle checks if the file is an ELF executable
+// CanHandle checks if the file is an ELF executable.
 func (e *ELFExtractor) CanHandle(filePath string) bool {
 	return IsELF(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *ELFExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractDocument(filePath), nil
+// Extract implements MetadataExtractor interface.
+func (e *ELFExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractDocument(filePath, logCmd), nil
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *ELFExtractor) GetType() string {
 	return "application/x-executable"
 }
 
-// ExtractDocument extracts ELF metadata
-func (e *ELFExtractor) ExtractDocument(filePath string) map[string]string {
-	return ParseELF(filePath)
+// ExtractDocument extracts ELF metadata.
+func (e *ELFExtractor) ExtractDocument(filePath string, logCmd models.CommandLogger) map[string]string {
+	return ParseELF(filePath, logCmd)
 }
 
-// IsELF checks if a file is a Linux ELF executable by magic bytes
+// IsELF checks if a file is a Linux ELF executable by magic bytes.
 func IsELF(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}
@@ -54,17 +59,35 @@ func IsELF(filePath string) bool {
 		magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F'
 }
 
-// ParseELF extracts metadata from Linux ELF executables
-func ParseELF(filePath string) map[string]string {
+// ParseELF extracts metadata from Linux ELF executables.
+func ParseELF(filePath string, logCmd models.CommandLogger) map[string]string {
 	metadata := make(map[string]string)
-	metadata["Type"] = "ELF Executable"
+	metadata["type"] = "Linux ELF Executable"
 
+	startTime := time.Now()
 	file, err := elf.Open(filePath)
+	endTime := time.Now()
+	exitCode := 0
+	if err != nil {
+		exitCode = 1
+	}
+	if logCmd != nil {
+		logCmd(utils.GenerateRandomID(), "elf.Open", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+	}
 	if err != nil {
 		return metadata
 	}
 	defer func() {
-		_ = file.Close()
+		startTime := time.Now()
+		err := file.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "elf.File.Close", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	// Class (32-bit or 64-bit)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Evidex follows a modular architecture separating command-line interface, acquisition logic, metadata extraction, and output formatting. The system operates on strict read-only principles with comprehensive logging and chain of custody documentation.
+Evidex follows a modular architecture separating command-line interface, acquisition logic, metadata extraction, and remote transmission. The system operates on strict read-only principles with comprehensive command execution logging and chain of custody documentation. All processing is done in-memory without local storage, transmitting evidence directly to remote servers.
 
 ## Directory Structure
 
@@ -10,7 +10,10 @@ Evidex follows a modular architecture separating command-line interface, acquisi
 Command-line interface and application entry point. Handles flag parsing, user input validation, and orchestrates the acquisition workflow.
 
 ### `internal/acquisition/`
-Core evidence acquisition engine. Manages file enumeration, read-only access verification, hash calculation, and evidence package assembly. Coordinates metadata extraction and ensures forensic integrity throughout the process.
+Core evidence acquisition engine with dependency injection pattern. Receives OS wrapper, metadata manager, and custody chain as dependencies. Manages file enumeration, read-only access verification, and evidence package assembly. All OS operations automatically logged via OS wrapper's SetLogger callback. Ensures forensic integrity throughout the process with comprehensive command execution history.
+
+### `internal/os/`
+Platform-specific OS operations with automatic command logging. Provides unified interface across all platforms (Windows, Linux, macOS, BSD). Uses Go build tags for platform-specific compilation. Includes stub files (`*_stub.go`) that enable cross-compilation by providing fallback implementations for non-native platforms. All operations are logged automatically when SetLogger is configured.
 
 ### `internal/metadata/`
 Metadata extraction modules for different file types. Extracts EXIF data from images, codec information from videos, and filesystem metadata. Includes specialized extractors for generic files, images, videos, and operating system metadata.
@@ -32,54 +35,122 @@ Shared utility functions for file operations, hash calculation, and common foren
 
 ## Data Flow
 
-1. CLI parses input paths and configuration flags
-2. Acquisition module enumerates files with read-only access
-3. Metadata extractors analyze each file without modification
-4. Hash utilities calculate cryptographic checksums
-5. Evidence package assembles files, metadata, and chain of custody
-6. Formatter generates output files or prepares transmission payload
-7. Sender transmits complete package to remote analysis server
-8. Logger captures all operations for audit trail
+### Initialization Sequence (main.go)
+
+1. **Parse Configuration**: Parse command-line flags and validate input
+2. **Create OS Wrapper**: Initialize platform-specific OS implementation
+3. **Get System Info**: Retrieve hostname, username, and process ID
+4. **Initialize Logger**: `logger.InitDefaultLogger(appName, hostname, processID)`
+5. **Create Custody Chain**: `models.NewCustodyChainEntry(appName, version)`
+6. **Configure Agent Info**: Set hostname and username in custody chain
+7. **Enable Auto-Logging**: `osImpl.SetLogger(custodyChain.LogCommand)`
+8. **Create Metadata Manager**: `metadata.NewMetadataManager(custodyChain.LogCommand)`
+9. **Create Acquirer**: `acquisition.NewAcquirer(custodyChain, osImpl, metadataMgr)`
+10. **Execute Acquisition**: Process files/directories with fully initialized components
+
+### Acquisition Flow
+
+1. Acquirer receives files/directories to process
+2. OS wrapper enumerates files with read-only access (auto-logged)
+3. Metadata manager analyzes each file without modification
+4. MetadataManager calculates hashes: MD5, SHA1, SHA256, SHA512
+5. Evidence package assembles files, metadata, command history, and chain of custody
+6. Sender transmits complete package to remote analysis server
+7. RFC 5424 structured logs included in transmission
+8. All processing done in-memory without local storage
 
 #### 2. **Acquisition Engine** (`internal/acquisition/acquisition.go`)
-- `Acquirer` type: Manages entire acquisition process
+- `Acquirer` type: Manages entire acquisition process with dependency injection
+- **Constructor**: `NewAcquirer(custodyChain, osImpl, metadataMgr)` - DI pattern
+- Dependencies:
+  - `CustodyChain`: Chain of custody tracking
+  - `OS`: OS wrapper interface for all system operations
+  - `MetadataManager`: Metadata extraction and hash calculation
 - `AcquireFile()`: Single file acquisition
 - `AcquireDirectory()`: Directory traversal (recursive/non-recursive)
 - `AcquireMultiple()`: Batch file processing
 - `CopyFilesToPackage()`: Safe file copying to output directory
 - `GetEvidencePackage()`: Build final evidence package
+- All OS operations automatically logged via OS wrapper
 
-#### 3. **Metadata Extractor** (`internal/metadata/metadata.go`)
+#### 3. **OS Wrapper** (`internal/os/os.go`)
+- **Interface**: Platform-agnostic OS operations
+- **Implementations**: Default, Windows, Linux, Darwin (macOS), Unix (BSD)
+- **Build Tags**: Platform-specific compilation with stub files for cross-compilation
+- **Automatic Logging**: All operations logged via `SetLogger(custodyChain.LogCommand)`
+- **Operations**: File operations, process management, system info, advanced timestamps
+- **Time Handling**: `ExtractAdvancedTimes()` returns native `time.Time` objects (not strings)
+- **Stub Files**: `*_stub.go` files enable compilation on non-native platforms
+
+#### 4. **Metadata Manager** (`internal/metadata/metadata.go`)
+- **Constructor**: `NewMetadataManager(commandLogger)` - receives logging callback
 - Filesystem metadata (permissions, timestamps, ownership)
 - Image metadata (EXIF, XMP, IPTC, GPS)
 - Video metadata (codec, duration, frame rate, bitrate)
 - Format detection (MIME types, magic bytes)
-- Hash calculation (SHA-256, SHA-512, MD5)
+- **Hash Calculation**: `CalculateFileHashes()` computes MD5, SHA1, SHA256, SHA512
+- **Type Detection**: `GetFileTypeFromMimeType()` uses extractor registry
+- Command logging for all file operations
+- Specialized extractors organized by category:
+  - `generic/`: ELF, PE, Mach-O, PDF, ZIP, TAR, GZIP, text files
+  - `images/`: JPEG, PNG, GIF
+  - `video/`: MP4, MOV, AVI, MKV, WebM
+  - `os/`: Platform-specific OS metadata
 
-#### 4. **Utility Functions** (`internal/utils/utils.go`)
-- Hash calculation and verification
-- System context gathering
-- File access validation
-- Logging and reporting
-- Directory and file operations
+#### 5. **Logger Module** (`internal/logger/logger.go`)
+- **RFC 5424 Compliant**: Structured syslog format with metadata
+- **Constructor**: `NewLogger(appName, hostname, processID)` - requires 3 parameters
+- **Global Logger**: `InitDefaultLogger(appName, hostname, processID)` for package-level logging
+- **Log Levels**: Debug, Info, Warning, Error
+- **Structured Metadata**: Key-value pairs in each log entry
+- **Format**: `<priority>1 timestamp hostname app pid - [meta@1 key="value"] message`
+- Console output with in-memory buffering for transmission
 
-#### 5. **Package Formatter** (`internal/formatter/formatter.go`)
+#### 6. **Utility Functions** (`internal/utils/utils.go`)
+- Hash calculation: `CalculateSHA256()`, `CalculateSHA512()`, `CalculateMD5()`, `CalculateSHA1()`
+- File utilities: `IsReadOnly()`, `GenerateEvidenceID(hostname)`
+- Random ID generation for command tracking
+- File permission and access validation
+
+#### 7. **Package Formatter** (`internal/formatter/formatter.go`)
 - JSON metadata export
 - CSV manifest generation
 - Hash file creation
 - Integrity report generation
 - Package documentation
 
-#### 6. **Data Models** (`internal/models/models.go`)
-- `EvidencePackage`: Complete evidence container
-- `ChainOfCustodyManifest`: Custody history and metadata
-- `FileEvidence`: Per-file evidence record with all metadata
-- `AcquisitionLog`: Detailed operation log
-- `SystemContext`: System information snapshot
+#### 8. **Data Models** (`internal/models/`)
+- **`models.go`**: Core data structures
+  - `EvidencePackage`: Complete evidence container
+  - `FileEvidence`: Per-file evidence record with all metadata
+  - `FileHashes`: MD5, SHA1, SHA256, SHA512 hash container
+  - `LogEntry`: Structured log entry with timestamp, level, message, details
+  - `CommandExecution`: Command tracking with arguments, timing, exit codes
+  - `CommandLogger`: Callback function type for command logging
+- **`custody_chain.go`**: Chain of custody management
+  - `CustodyChainEntry`: Custody history with command execution tracking
+  - `NewCustodyChainEntry(appName, version)`: Constructor for custody chain
+  - `SetAgentHostname(hostname)`: Set agent hostname
+  - `SetAgentUser(username)`: Set agent username
+  - `LogCommand(id, cmd, args, start, end, exitCode, err, stdout, stderr)`: Log command execution
+- **`custody_helpers.go`**: Helper methods for custody chain operations
 
 ---
 
 ## Data Flow
+
+### Initialization Sequence (main.go)
+
+1. **Parse Configuration**: Parse command-line flags and validate input
+2. **Create OS Wrapper**: Initialize platform-specific OS implementation
+3. **Get System Info**: Retrieve hostname, username, and process ID
+4. **Initialize Logger**: `logger.InitDefaultLogger(appName, hostname, processID)`
+5. **Create Custody Chain**: `models.NewCustodyChainEntry(appName, version)`
+6. **Configure Agent Info**: Set hostname and username in custody chain
+7. **Enable Auto-Logging**: `osImpl.SetLogger(custodyChain.LogCommand)`
+8. **Create Metadata Manager**: `metadata.NewMetadataManager(custodyChain.LogCommand)`
+9. **Create Acquirer**: `acquisition.NewAcquirer(custodyChain, osImpl, metadataMgr)`
+10. **Execute Acquisition**: Process files/directories with fully initialized components
 
 ### Acquisition Flow Diagram
 
@@ -494,6 +565,47 @@ The complete evidence package in JSON includes:
 
 ---
 
+## Build System
+
+### Cross-Platform Compilation
+
+Evidex uses Go build tags for platform-specific code:
+
+**Build Tags**:
+- `//go:build linux` - Linux-specific implementations
+- `//go:build darwin` - macOS-specific implementations
+- `//go:build windows` - Windows-specific implementations
+- `//go:build freebsd || openbsd` - BSD Unix implementations
+
+**Stub Files for Cross-Compilation**:
+- `linux_stub.go` (`//go:build !linux`) - Provides `NewLinux()` for non-Linux builds
+- `darwin_stub.go` (`//go:build !darwin`) - Provides `NewDarwin()` for non-macOS builds
+- `windows_stub.go` (`//go:build !windows`) - Provides `NewWindows()` for non-Windows builds
+- `unix_stub.go` - Provides `NewUnix()` for non-BSD builds
+
+Stub files return `NewDefault()` as fallback, enabling compilation on any platform while maintaining platform-specific functionality when running on native OS.
+
+**Benefits**:
+- Compile for any platform from any platform
+- No compilation errors from missing platform-specific code
+- Graceful fallback to default implementation
+- Maintains platform-specific optimizations when available
+
+**Example Usage**:
+```go
+// In linux.go (//go:build linux)
+func NewLinux() OS {
+    return &LinuxImpl{...}
+}
+
+// In linux_stub.go (//go:build !linux)
+func NewLinux() OS {
+    return NewDefault()  // Fallback for non-Linux builds
+}
+```
+
+---
+
 ## Workflow Summary
 
 1. **User Initiates**: Specifies input files/directories and output location
@@ -510,6 +622,32 @@ The complete evidence package in JSON includes:
 
 ---
 
+## Build System
+
+### Cross-Platform Compilation
+
+Evidex uses Go build tags for platform-specific code:
+
+**Build Tags**:
+- `//go:build linux` - Linux-specific implementations
+- `//go:build darwin` - macOS-specific implementations
+- `//go:build windows` - Windows-specific implementations
+- `//go:build freebsd || openbsd` - BSD Unix implementations
+
+**Stub Files for Cross-Compilation**:
+- `linux_stub.go` (`//go:build !linux`) - Provides `NewLinux()` for non-Linux builds
+- `darwin_stub.go` (`//go:build !darwin`) - Provides `NewDarwin()` for non-macOS builds
+- `windows_stub.go` (`//go:build !windows`) - Provides `NewWindows()` for non-Windows builds
+- `unix_stub.go` - Provides `NewUnix()` for non-BSD builds
+
+Stub files return `NewDefault()` as fallback, enabling compilation on any platform while maintaining platform-specific functionality when running on native OS.
+
+**Benefits**:
+- Compile for any platform from any platform
+- No compilation errors from missing platform-specific code
+- Graceful fallback to default implementation
+- Maintains platform-specific optimizations when available
+
 ## Deployment Considerations
 
 ### Portable Deployment
@@ -518,6 +656,7 @@ The complete evidence package in JSON includes:
 - Works on air-gapped systems
 - No installation required
 - Can be executed from USB or network share
+- Cross-compiled binaries available for all platforms
 
 ### Forensic Workstation Setup
 

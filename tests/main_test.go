@@ -14,12 +14,12 @@ func TestParseFlags(t *testing.T) {
 	defer func() { os.Args = oldArgs }()
 
 	// Set test args
-	os.Args = []string{"evidex", "-o", "/tmp/evidex-test", "/path/to/file"}
+	os.Args = []string{"evidex", "-server", "https://test.com/api/evidence", "-token", "test-token", "/path/to/file"}
 
 	cfg := config.ParseFlags()
 
-	if cfg.OutputDir == "" {
-		t.Error("Expected output directory to be set")
+	if cfg.ServerURL == "" {
+		t.Error("Expected server URL to be set")
 	}
 
 	if len(cfg.FilePaths) == 0 {
@@ -33,16 +33,12 @@ func TestFlagDefaults(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 
-	os.Args = []string{"evidex", "-o", "/tmp/test", "/path"}
+	os.Args = []string{"evidex", "-server", "https://test.com", "-token", "test-token", "/path"}
 
 	cfg := config.ParseFlags()
 
 	if cfg.Recursive != false {
 		t.Error("Expected Recursive to default to false")
-	}
-
-	if cfg.HashAlgorithm != "SHA-256" {
-		t.Errorf("Expected HashAlgorithm to default to 'SHA-256', got '%s'", cfg.HashAlgorithm)
 	}
 }
 
@@ -70,27 +66,23 @@ func TestValidateConfig(t *testing.T) {
 		{
 			name: "Valid minimal config",
 			config: &config.Config{
-				OutputDir:     os.TempDir(),
-				FilePaths:     []string{tmpfile.Name()},
-				HashAlgorithm: "SHA-256",
+				FilePaths: []string{tmpfile.Name()},
+				ServerURL: "http://test.com",
 			},
 			wantErr: false,
 		},
 		{
-			name: "Missing output directory",
+			name: "Missing server URL",
 			config: &config.Config{
-				OutputDir:     "",
-				FilePaths:     []string{tmpfile.Name()},
-				HashAlgorithm: "SHA-256",
+				FilePaths: []string{tmpfile.Name()},
 			},
 			wantErr: true,
 		},
 		{
 			name: "No paths provided",
 			config: &config.Config{
-				OutputDir:     os.TempDir(),
-				FilePaths:     []string{},
-				HashAlgorithm: "SHA-256",
+				FilePaths: []string{},
+				ServerURL: "http://test.com",
 			},
 			wantErr: true,
 		},

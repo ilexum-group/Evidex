@@ -1,61 +1,51 @@
+// Package images provides metadata extraction for image file formats including JPEG, PNG, and GIF.
 package images
 
 import (
-	"image"
 	_ "image/gif" // Register GIF format
 	"os"
 
 	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// GIFExtractor implements metadata extraction for GIF images
+// GIFExtractor implements metadata extraction for GIF images.
 type GIFExtractor struct{}
 
-// NewGIFExtractor creates a new GIF extractor
+// NewGIFExtractor creates a new GIF extractor.
 func NewGIFExtractor() *GIFExtractor {
 	return &GIFExtractor{}
 }
 
-// CanHandle checks if the file is a GIF image
+// CanHandle checks if the file is a GIF image.
 func (e *GIFExtractor) CanHandle(filePath string) bool {
 	return IsGIF(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *GIFExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractImage(filePath)
+// Extract implements MetadataExtractor interface.
+func (e *GIFExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractImage(filePath, logCmd)
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *GIFExtractor) GetType() string {
 	return "image/gif"
 }
 
-// ExtractImage extracts GIF-specific metadata
-func (e *GIFExtractor) ExtractImage(filePath string) (*models.ImageMetadata, error) {
+// ExtractImage extracts GIF-specific metadata.
+func (e *GIFExtractor) ExtractImage(filePath string, logCmd models.CommandLogger) (*models.ImageMetadata, error) {
 	metadata := &models.ImageMetadata{Format: "GIF"}
 
 	// Get basic image dimensions
-	file, err := os.Open(filePath)
-	if err != nil {
-		return metadata, err
-	}
-	defer func() {
-		_ = file.Close()
-	}()
+	width, height, err := extractImageDimensions(filePath, "GIF", logCmd)
+	metadata.Width = width
+	metadata.Height = height
 
-	config, _, err := image.DecodeConfig(file)
-	if err == nil {
-		metadata.Width = config.Width
-		metadata.Height = config.Height
-	}
-
-	return metadata, nil
+	return metadata, err
 }
 
-// IsGIF checks if a file is a GIF image by magic bytes
+// IsGIF checks if a file is a GIF image by magic bytes.
 func IsGIF(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}

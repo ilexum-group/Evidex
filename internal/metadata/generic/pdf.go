@@ -1,42 +1,47 @@
+// Package generic provides metadata extraction for generic file formats including executables, archives, and documents.
 package generic
 
 import (
 	"bufio"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// PDFExtractor implements metadata extraction for PDF documents
+// PDFExtractor implements metadata extraction for PDF documents.
 type PDFExtractor struct{}
 
-// NewPDFExtractor creates a new PDF extractor
+// NewPDFExtractor creates a new PDF extractor.
 func NewPDFExtractor() *PDFExtractor {
 	return &PDFExtractor{}
 }
 
-// CanHandle checks if the file is a PDF document
+// CanHandle checks if the file is a PDF document.
 func (e *PDFExtractor) CanHandle(filePath string) bool {
 	return IsPDF(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *PDFExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractDocument(filePath), nil
+// Extract implements MetadataExtractor interface.
+func (e *PDFExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractDocument(filePath, logCmd), nil
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *PDFExtractor) GetType() string {
 	return "application/pdf"
 }
 
-// ExtractDocument extracts PDF metadata
-func (e *PDFExtractor) ExtractDocument(filePath string) map[string]string {
-	return ParsePDF(filePath)
+// ExtractDocument extracts PDF metadata.
+func (e *PDFExtractor) ExtractDocument(filePath string, logCmd models.CommandLogger) map[string]string {
+	return ParsePDF(filePath, logCmd)
 }
 
-// IsPDF checks if a file is a PDF by magic bytes
+// IsPDF checks if a file is a PDF by magic bytes.
 func IsPDF(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}
@@ -53,17 +58,35 @@ func IsPDF(filePath string) bool {
 	return len(magic) == 5 && string(magic) == "%PDF-"
 }
 
-// ParsePDF extracts metadata from PDF files
-func ParsePDF(filePath string) map[string]string {
+// ParsePDF extracts metadata from PDF files.
+func ParsePDF(filePath string, logCmd models.CommandLogger) map[string]string {
 	metadata := make(map[string]string)
 	metadata["Type"] = "PDF"
 
-	file, err := os.Open(filePath)
+	startTime := time.Now()
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
+	endTime := time.Now()
+	exitCode := 0
+	if err != nil {
+		exitCode = 1
+	}
+	if logCmd != nil {
+		logCmd(utils.GenerateRandomID(), "os.Open", []string{filePath, "PDF parse"}, startTime, endTime, exitCode, err, "", filePath)
+	}
 	if err != nil {
 		return metadata
 	}
 	defer func() {
-		_ = file.Close()
+		startTime := time.Now()
+		err := file.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "file.Close", []string{filePath, "PDF parse"}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	scanner := bufio.NewScanner(file)
@@ -119,7 +142,7 @@ func ParsePDF(filePath string) map[string]string {
 	return metadata
 }
 
-// extractPDFValue extracts a value from a PDF metadata line
+// extractPDFValue extracts a value from a PDF metadata line.
 func extractPDFValue(line, key string) string {
 	idx := strings.Index(line, key)
 	if idx == -1 {

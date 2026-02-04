@@ -1,61 +1,51 @@
+// Package images provides metadata extraction for image file formats including JPEG, PNG, and GIF.
 package images
 
 import (
-	"image"
 	_ "image/jpeg" // Register JPEG format
 	"os"
 
 	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// JPEGExtractor implements metadata extraction for JPEG images
+// JPEGExtractor implements metadata extraction for JPEG images.
 type JPEGExtractor struct{}
 
-// NewJPEGExtractor creates a new JPEG extractor
+// NewJPEGExtractor creates a new JPEG extractor.
 func NewJPEGExtractor() *JPEGExtractor {
 	return &JPEGExtractor{}
 }
 
-// CanHandle checks if the file is a JPEG image
+// CanHandle checks if the file is a JPEG image.
 func (e *JPEGExtractor) CanHandle(filePath string) bool {
 	return IsJPEG(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *JPEGExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractImage(filePath)
+// Extract implements MetadataExtractor interface.
+func (e *JPEGExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractImage(filePath, logCmd)
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *JPEGExtractor) GetType() string {
 	return "image/jpeg"
 }
 
-// ExtractImage extracts JPEG-specific metadata
-func (e *JPEGExtractor) ExtractImage(filePath string) (*models.ImageMetadata, error) {
+// ExtractImage extracts JPEG-specific metadata.
+func (e *JPEGExtractor) ExtractImage(filePath string, logCmd models.CommandLogger) (*models.ImageMetadata, error) {
 	metadata := &models.ImageMetadata{Format: "JPEG"}
 
 	// Get basic image dimensions
-	file, err := os.Open(filePath)
-	if err != nil {
-		return metadata, err
-	}
-	defer func() {
-		_ = file.Close()
-	}()
+	width, height, err := extractImageDimensions(filePath, "JPEG", logCmd)
+	metadata.Width = width
+	metadata.Height = height
 
-	config, _, err := image.DecodeConfig(file)
-	if err == nil {
-		metadata.Width = config.Width
-		metadata.Height = config.Height
-	}
-
-	return metadata, nil
+	return metadata, err
 }
 
-// IsJPEG checks if a file is a JPEG image by magic bytes
+// IsJPEG checks if a file is a JPEG image by magic bytes.
 func IsJPEG(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}

@@ -1,42 +1,47 @@
+// Package generic provides metadata extraction for generic file formats including executables, archives, and documents.
 package generic
 
 import (
 	"compress/gzip"
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// GZIPExtractor implements metadata extraction for GZIP archives
+// GZIPExtractor implements metadata extraction for GZIP archives.
 type GZIPExtractor struct{}
 
-// NewGZIPExtractor creates a new GZIP extractor
+// NewGZIPExtractor creates a new GZIP extractor.
 func NewGZIPExtractor() *GZIPExtractor {
 	return &GZIPExtractor{}
 }
 
-// CanHandle checks if the file is a GZIP archive
+// CanHandle checks if the file is a GZIP archive.
 func (e *GZIPExtractor) CanHandle(filePath string) bool {
 	return IsGZIP(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *GZIPExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractDocument(filePath), nil
+// Extract implements MetadataExtractor interface.
+func (e *GZIPExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractDocument(filePath, logCmd), nil
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *GZIPExtractor) GetType() string {
 	return "application/gzip"
 }
 
-// ExtractDocument extracts GZIP metadata
-func (e *GZIPExtractor) ExtractDocument(filePath string) map[string]string {
-	return ParseGZIP(filePath)
+// ExtractDocument extracts GZIP metadata.
+func (e *GZIPExtractor) ExtractDocument(filePath string, logCmd models.CommandLogger) map[string]string {
+	return ParseGZIP(filePath, logCmd)
 }
 
-// IsGZIP checks if a file is a GZIP archive by magic bytes
+// IsGZIP checks if a file is a GZIP archive by magic bytes.
 func IsGZIP(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}
@@ -53,17 +58,35 @@ func IsGZIP(filePath string) bool {
 	return len(magic) == 2 && magic[0] == 0x1F && magic[1] == 0x8B
 }
 
-// ParseGZIP extracts metadata from GZIP archives
-func ParseGZIP(filePath string) map[string]string {
+// ParseGZIP extracts metadata from GZIP archives.
+func ParseGZIP(filePath string, logCmd models.CommandLogger) map[string]string {
 	metadata := make(map[string]string)
 	metadata["Type"] = "GZIP Archive"
 
-	file, err := os.Open(filePath)
+	startTime := time.Now()
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
+	endTime := time.Now()
+	exitCode := 0
+	if err != nil {
+		exitCode = 1
+	}
+	if logCmd != nil {
+		logCmd(utils.GenerateRandomID(), "os.Open", []string{filePath, "GZIP parse"}, startTime, endTime, exitCode, err, "", filePath)
+	}
 	if err != nil {
 		return metadata
 	}
 	defer func() {
-		_ = file.Close()
+		startTime := time.Now()
+		err := file.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "file.Close", []string{filePath, "GZIP parse"}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	gzReader, err := gzip.NewReader(file)
@@ -71,7 +94,16 @@ func ParseGZIP(filePath string) map[string]string {
 		return metadata
 	}
 	defer func() {
-		_ = gzReader.Close()
+		startTime := time.Now()
+		err := gzReader.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "gzip.Reader.Close", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	// Extract GZIP header information

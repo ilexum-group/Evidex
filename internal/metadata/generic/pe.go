@@ -1,3 +1,4 @@
+// Package generic provides metadata extraction for generic file formats including executables, archives, and documents.
 package generic
 
 import (
@@ -5,39 +6,42 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// PEExtractor implements metadata extraction for Windows PE executables
+// PEExtractor implements metadata extraction for Windows PE executables.
 type PEExtractor struct{}
 
-// NewPEExtractor creates a new PE extractor
+// NewPEExtractor creates a new PE extractor.
 func NewPEExtractor() *PEExtractor {
 	return &PEExtractor{}
 }
 
-// CanHandle checks if the file is a PE executable
+// CanHandle checks if the file is a PE executable.
 func (e *PEExtractor) CanHandle(filePath string) bool {
 	return IsPE(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *PEExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractDocument(filePath), nil
+// Extract implements MetadataExtractor interface.
+func (e *PEExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractDocument(filePath, logCmd), nil
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *PEExtractor) GetType() string {
 	return "application/x-msdownload"
 }
 
-// ExtractDocument extracts PE metadata
-func (e *PEExtractor) ExtractDocument(filePath string) map[string]string {
-	return ParsePE(filePath)
+// ExtractDocument extracts PE metadata.
+func (e *PEExtractor) ExtractDocument(filePath string, logCmd models.CommandLogger) map[string]string {
+	return ParsePE(filePath, logCmd)
 }
 
-// IsPE checks if a file is a Windows PE executable by magic bytes
+// IsPE checks if a file is a Windows PE executable by magic bytes.
 func IsPE(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}
@@ -54,17 +58,35 @@ func IsPE(filePath string) bool {
 	return len(magic) == 2 && magic[0] == 'M' && magic[1] == 'Z'
 }
 
-// ParsePE extracts metadata from Windows PE executables
-func ParsePE(filePath string) map[string]string {
+// ParsePE extracts metadata from Windows PE executables.
+func ParsePE(filePath string, logCmd models.CommandLogger) map[string]string {
 	metadata := make(map[string]string)
 	metadata["Type"] = "Windows PE Executable"
 
+	startTime := time.Now()
 	file, err := pe.Open(filePath)
+	endTime := time.Now()
+	exitCode := 0
+	if err != nil {
+		exitCode = 1
+	}
+	if logCmd != nil {
+		logCmd(utils.GenerateRandomID(), "pe.Open", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+	}
 	if err != nil {
 		return metadata
 	}
 	defer func() {
-		_ = file.Close()
+		startTime := time.Now()
+		err := file.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "pe.File.Close", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	// Determine architecture

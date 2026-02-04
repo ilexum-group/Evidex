@@ -1,61 +1,51 @@
+// Package images provides metadata extraction for image file formats including JPEG, PNG, and GIF.
 package images
 
 import (
-	"image"
 	_ "image/png" // Register PNG format
 	"os"
 
 	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// PNGExtractor implements metadata extraction for PNG images
+// PNGExtractor implements metadata extraction for PNG images.
 type PNGExtractor struct{}
 
-// NewPNGExtractor creates a new PNG extractor
+// NewPNGExtractor creates a new PNG extractor.
 func NewPNGExtractor() *PNGExtractor {
 	return &PNGExtractor{}
 }
 
-// CanHandle checks if the file is a PNG image
+// CanHandle checks if the file is a PNG image.
 func (e *PNGExtractor) CanHandle(filePath string) bool {
 	return IsPNG(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *PNGExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractImage(filePath)
+// Extract implements MetadataExtractor interface.
+func (e *PNGExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractImage(filePath, logCmd)
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *PNGExtractor) GetType() string {
 	return "image/png"
 }
 
-// ExtractImage extracts PNG-specific metadata
-func (e *PNGExtractor) ExtractImage(filePath string) (*models.ImageMetadata, error) {
+// ExtractImage extracts PNG-specific metadata.
+func (e *PNGExtractor) ExtractImage(filePath string, logCmd models.CommandLogger) (*models.ImageMetadata, error) {
 	metadata := &models.ImageMetadata{Format: "PNG"}
 
 	// Get basic image dimensions
-	file, err := os.Open(filePath)
-	if err != nil {
-		return metadata, err
-	}
-	defer func() {
-		_ = file.Close()
-	}()
+	width, height, err := extractImageDimensions(filePath, "PNG", logCmd)
+	metadata.Width = width
+	metadata.Height = height
 
-	config, _, err := image.DecodeConfig(file)
-	if err == nil {
-		metadata.Width = config.Width
-		metadata.Height = config.Height
-	}
-
-	return metadata, nil
+	return metadata, err
 }
 
-// IsPNG checks if a file is a PNG image by magic bytes
+// IsPNG checks if a file is a PNG image by magic bytes.
 func IsPNG(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}

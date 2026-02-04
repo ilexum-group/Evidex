@@ -1,42 +1,47 @@
+// Package generic provides metadata extraction for generic file formats including executables, archives, and documents.
 package generic
 
 import (
 	"debug/macho"
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// MachOExtractor implements metadata extraction for macOS Mach-O executables
+// MachOExtractor implements metadata extraction for macOS Mach-O executables.
 type MachOExtractor struct{}
 
-// NewMachOExtractor creates a new Mach-O extractor
+// NewMachOExtractor creates a new Mach-O extractor.
 func NewMachOExtractor() *MachOExtractor {
 	return &MachOExtractor{}
 }
 
-// CanHandle checks if the file is a Mach-O executable
+// CanHandle checks if the file is a Mach-O executable.
 func (e *MachOExtractor) CanHandle(filePath string) bool {
 	return IsMachO(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *MachOExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractDocument(filePath), nil
+// Extract implements MetadataExtractor interface.
+func (e *MachOExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractDocument(filePath, logCmd), nil
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *MachOExtractor) GetType() string {
 	return "application/x-mach-binary"
 }
 
-// ExtractDocument extracts Mach-O metadata
-func (e *MachOExtractor) ExtractDocument(filePath string) map[string]string {
-	return ParseMachO(filePath)
+// ExtractDocument extracts Mach-O metadata.
+func (e *MachOExtractor) ExtractDocument(filePath string, logCmd models.CommandLogger) map[string]string {
+	return ParseMachO(filePath, logCmd)
 }
 
-// IsMachO checks if a file is a macOS Mach-O executable by magic bytes
+// IsMachO checks if a file is a macOS Mach-O executable by magic bytes.
 func IsMachO(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}
@@ -61,17 +66,35 @@ func IsMachO(filePath string) bool {
 		(magic[0] == 0xCA && magic[1] == 0xFE && magic[2] == 0xBA && magic[3] == 0xBE) // Universal/Fat binary
 }
 
-// ParseMachO extracts metadata from macOS Mach-O executables
-func ParseMachO(filePath string) map[string]string {
+// ParseMachO extracts metadata from macOS Mach-O executables.
+func ParseMachO(filePath string, logCmd models.CommandLogger) map[string]string {
 	metadata := make(map[string]string)
-	metadata["Type"] = "Mach-O Executable"
+	metadata["type"] = "macOS Mach-O Executable"
 
+	startTime := time.Now()
 	file, err := macho.Open(filePath)
+	endTime := time.Now()
+	exitCode := 0
+	if err != nil {
+		exitCode = 1
+	}
+	if logCmd != nil {
+		logCmd(utils.GenerateRandomID(), "macho.Open", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+	}
 	if err != nil {
 		return metadata
 	}
 	defer func() {
-		_ = file.Close()
+		startTime := time.Now()
+		err := file.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "macho.File.Close", []string{filePath}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	// CPU type

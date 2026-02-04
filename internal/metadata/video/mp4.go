@@ -1,36 +1,44 @@
+// Package video provides metadata extraction for video file formats including MP4, AVI, MKV, MOV, and WebM.
 package video
 
 import (
 	"os"
+	"time"
 
+	"github.com/ilexum-group/evidex/internal/utils"
 	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// MP4Extractor implements metadata extraction for MP4 videos
+// MP4Extractor implements metadata extraction for MP4 videos.
 type MP4Extractor struct{}
 
-// NewMP4Extractor creates a new MP4 extractor
+// NewMP4Extractor creates a new MP4 extractor.
 func NewMP4Extractor() *MP4Extractor {
 	return &MP4Extractor{}
 }
 
-// CanHandle checks if the file is an MP4 video
+// CanHandle checks if the file is an MP4 video.
 func (e *MP4Extractor) CanHandle(filePath string) bool {
 	return IsMP4(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *MP4Extractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractVideo(filePath)
+// Extract implements MetadataExtractor interface.
+func (e *MP4Extractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractVideo(filePath, logCmd)
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *MP4Extractor) GetType() string {
 	return "video/mp4"
 }
 
-// ExtractVideo extracts MP4-specific metadata
-func (e *MP4Extractor) ExtractVideo(filePath string) (*models.VideoMetadata, error) {
+// ExtractVideo extracts MP4-specific metadata.
+func (e *MP4Extractor) ExtractVideo(filePath string, logCmd models.CommandLogger) (*models.VideoMetadata, error) {
+	if logCmd != nil {
+		startTime := time.Now()
+		logCmd(utils.GenerateRandomID(), "video.ExtractMP4", []string{filePath}, startTime, time.Now(), 0, nil, "", filePath)
+	}
+
 	metadata := &models.VideoMetadata{
 		Format: "MP4",
 	}
@@ -38,9 +46,9 @@ func (e *MP4Extractor) ExtractVideo(filePath string) (*models.VideoMetadata, err
 	return metadata, nil
 }
 
-// IsMP4 checks if a file is an MP4 video by magic bytes
+// IsMP4 checks if a file is an MP4 video by magic bytes.
 func IsMP4(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}

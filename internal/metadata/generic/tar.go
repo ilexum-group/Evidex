@@ -1,3 +1,4 @@
+// Package generic provides metadata extraction for generic file formats including executables, archives, and documents.
 package generic
 
 import (
@@ -5,39 +6,43 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
+
+	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// TARExtractor implements metadata extraction for TAR archives
+// TARExtractor implements metadata extraction for TAR archives.
 type TARExtractor struct{}
 
-// NewTARExtractor creates a new TAR extractor
+// NewTARExtractor creates a new TAR extractor.
 func NewTARExtractor() *TARExtractor {
 	return &TARExtractor{}
 }
 
-// CanHandle checks if the file is a TAR archive
+// CanHandle checks if the file is a TAR archive.
 func (e *TARExtractor) CanHandle(filePath string) bool {
 	return IsTAR(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *TARExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractDocument(filePath), nil
+// Extract implements MetadataExtractor interface.
+func (e *TARExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractDocument(filePath, logCmd), nil
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *TARExtractor) GetType() string {
 	return "application/x-tar"
 }
 
-// ExtractDocument extracts TAR metadata
-func (e *TARExtractor) ExtractDocument(filePath string) map[string]string {
-	return ParseTAR(filePath)
+// ExtractDocument extracts TAR metadata.
+func (e *TARExtractor) ExtractDocument(filePath string, logCmd models.CommandLogger) map[string]string {
+	return ParseTAR(filePath, logCmd)
 }
 
-// IsTAR checks if a file is a TAR archive by magic bytes
+// IsTAR checks if a file is a TAR archive by magic bytes.
 func IsTAR(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}
@@ -54,17 +59,35 @@ func IsTAR(filePath string) bool {
 	return string(magic[257:262]) == "ustar"
 }
 
-// ParseTAR extracts metadata from TAR archives
-func ParseTAR(filePath string) map[string]string {
+// ParseTAR extracts metadata from TAR archives.
+func ParseTAR(filePath string, logCmd models.CommandLogger) map[string]string {
 	metadata := make(map[string]string)
-	metadata["Type"] = "TAR Archive"
+	metadata["type"] = "TAR Archive"
 
-	file, err := os.Open(filePath)
+	startTime := time.Now()
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
+	endTime := time.Now()
+	exitCode := 0
+	if err != nil {
+		exitCode = 1
+	}
+	if logCmd != nil {
+		logCmd(utils.GenerateRandomID(), "os.Open", []string{filePath, "TAR parse"}, startTime, endTime, exitCode, err, "", filePath)
+	}
 	if err != nil {
 		return metadata
 	}
 	defer func() {
-		_ = file.Close()
+		startTime := time.Now()
+		err := file.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "file.Close", []string{filePath, "TAR parse"}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	tarReader := tar.NewReader(file)

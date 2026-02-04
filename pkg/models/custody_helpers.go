@@ -1,117 +1,67 @@
-// Package models - Custody Chain helper functions
+// Package models - Custody Chain helper functions for Bitex
 package models
 
 import (
-	"crypto/md5"
-	"crypto/sha1"
+	"crypto/md5"  //nolint:gosec // MD5 used for forensic verification, not security
+	"crypto/sha1" //nolint:gosec // SHA1 used for forensic verification, not security
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// NewCustodyChainEntry creates a new custody chain entry for Evidex
-func NewCustodyChainEntry(caseID, version string) (*CustodyChainEntry, error) {
-	hostname, _ := os.Hostname()
-	username := os.Getenv("USER")
-	if username == "" {
-		username = os.Getenv("USERNAME") // Windows
-	}
+// ============================================================================
+// Constructor
+// ============================================================================
 
+// NewCustodyChainEntry creates a new custody chain entry with the specified case and agent information.
+// Parameters:
+//   - agentType: Type of forensic agent (e.g., "bitex", "evidex", "tracium")
+//   - version: Version of the agent creating this entry
+//
+// Returns a new CustodyChainEntry instance with initialized arrays and timestamps.
+func NewCustodyChainEntry(agentType, version string) (*CustodyChainEntry, error) {
 	now := time.Now().UTC()
 
 	entry := &CustodyChainEntry{
-		ID:              uuid.New().String(),
-		AgentType:       "evidex",
-		AgentVersion:    version,
-		AgentHostname:   hostname,
-		AgentUser:       username,
-		StartTimestamp:  now,
-		CaseID:          caseID,
-		ProcessorStatus: "pending",
-		LogEntries:      make([]string, 0),
-		CommandHistory:  make([]CommandExecution, 0),
-		CustodyHistory:  make([]CustodyTransfer, 0),
-		IntegrityStatus: "not_verified",
+		ID:             uuid.New().String(),
+		AgentType:      agentType,
+		AgentVersion:   version,
+		StartTimestamp: now,
+		LogEntries:     make([]LogEntry, 0),
+		CommandHistory: make([]CommandExecution, 0),
 	}
-
-	// Add initial custody transfer
-	initialTransfer := CustodyTransfer{
-		ID:                 uuid.New().String(),
-		Timestamp:          now,
-		Action:             "collected",
-		CustodianName:      fmt.Sprintf("%s@%s", username, hostname),
-		CustodianRole:      "forensic_agent",
-		Location:           hostname,
-		Notes:              "Evidence collected by Evidex agent",
-		VerificationStatus: "not_performed",
-	}
-	entry.CustodyHistory = append(entry.CustodyHistory, initialTransfer)
 
 	return entry, nil
 }
 
-// AddCommandExecution adds a command execution record to the custody chain
-func (c *CustodyChainEntry) AddCommandExecution(cmd CommandExecution) {
-	if cmd.ID == "" {
-		cmd.ID = uuid.New().String()
-	}
-	c.CommandHistory = append(c.CommandHistory, cmd)
-}
+// ============================================================================
+// Public Methods
+// ============================================================================
 
-// AddLogEntry adds a log entry to the custody chain
-func (c *CustodyChainEntry) AddLogEntry(logEntry string) {
-	c.LogEntries = append(c.LogEntries, logEntry)
-}
-
-// AddCustodyTransfer adds a custody transfer event to the chain
-func (c *CustodyChainEntry) AddCustodyTransfer(transfer CustodyTransfer) {
-	if transfer.ID == "" {
-		transfer.ID = uuid.New().String()
-	}
-	if transfer.Timestamp.IsZero() {
-		transfer.Timestamp = time.Now().UTC()
-	}
-	c.CustodyHistory = append(c.CustodyHistory, transfer)
-}
-
-// Finalize completes the custody chain entry with final hashes and metadata
-func (c *CustodyChainEntry) Finalize(data []byte, itemCount int) error {
-	c.EndTimestamp = time.Now().UTC()
-	c.Duration = c.EndTimestamp.Sub(c.StartTimestamp).String()
-	c.ItemCount = itemCount
-	c.TotalSizeBytes = int64(len(data))
-
-	// Calculate all standard hashes
-	md5Hash := md5.Sum(data)
-	c.MD5Hash = hex.EncodeToString(md5Hash[:])
-
-	sha1Hash := sha1.Sum(data)
-	c.SHA1Hash = hex.EncodeToString(sha1Hash[:])
-
-	sha256Hash := sha256.Sum256(data)
-	c.SHA256Hash = hex.EncodeToString(sha256Hash[:])
-
-	c.IntegrityStatus = "verified"
-	c.IntegrityDetails = fmt.Sprintf("MD5: %s, SHA1: %s, SHA256: %s", c.MD5Hash, c.SHA1Hash, c.SHA256Hash)
-
-	return nil
-}
-
-// FinalizeFromReader completes the custody chain by reading and hashing data from a reader
+// FinalizeFromReader completes the custody chain by reading and hashing data from a reader.
+// This method:
+//   - Sets the end timestamp and calculates duration
+//   - Reads the complete evidence data from the provided reader
+//   - Calculates MD5, SHA1, and SHA256 hashes simultaneously
+//   - Sets the total size and hash values
+//
+// Parameters:
+//   - reader: io.Reader containing the complete evidence data
+//   - itemCount: Number of items/files collected in this evidence package
+//
+// Returns an error if reading or hashing fails.
 func (c *CustodyChainEntry) FinalizeFromReader(reader io.Reader, itemCount int) error {
 	c.EndTimestamp = time.Now().UTC()
 	c.Duration = c.EndTimestamp.Sub(c.StartTimestamp).String()
 	c.ItemCount = itemCount
 
 	// Create hash writers
-	md5Hash := md5.New()
-	sha1Hash := sha1.New()
+	md5Hash := md5.New()   // #nosec G401 - MD5 used for forensic verification, not security
+	sha1Hash := sha1.New() // #nosec G401 - SHA1 used for forensic verification, not security
 	sha256Hash := sha256.New()
 
 	// Use MultiWriter to hash while reading
@@ -128,171 +78,100 @@ func (c *CustodyChainEntry) FinalizeFromReader(reader io.Reader, itemCount int) 
 	c.SHA1Hash = hex.EncodeToString(sha1Hash.Sum(nil))
 	c.SHA256Hash = hex.EncodeToString(sha256Hash.Sum(nil))
 
-	c.IntegrityStatus = "verified"
-	c.IntegrityDetails = fmt.Sprintf("MD5: %s, SHA1: %s, SHA256: %s", c.MD5Hash, c.SHA1Hash, c.SHA256Hash)
-
 	return nil
 }
 
-// MarkTransmitted marks the custody chain as transmitted to Processor
-func (c *CustodyChainEntry) MarkTransmitted(processorURL string, response *ProcessorResponse) {
-	c.ProcessorURL = processorURL
-	c.ProcessorSentAt = time.Now().UTC()
-	c.ProcessorStatus = "sent"
-
-	if response != nil {
-		if response.TimeAnalysisID != "" {
-			c.TimeAnalysisRef = response.TimeAnalysisID
-		}
-		if response.ReportID != "" {
-			c.ReportRef = response.ReportID
-		}
-	}
-
-	// Add custody transfer for transmission
-	transfer := CustodyTransfer{
-		ID:                 uuid.New().String(),
-		Timestamp:          time.Now().UTC(),
-		Action:             "transmitted",
-		CustodianName:      "processor",
-		CustodianRole:      "evidence_processor",
-		FromCustodian:      fmt.Sprintf("%s@%s", c.AgentUser, c.AgentHostname),
-		Location:           processorURL,
-		Notes:              "Evidence transmitted to Processor for analysis",
-		VerificationHash:   c.SHA256Hash,
-		VerificationStatus: "verified",
-	}
-	c.AddCustodyTransfer(transfer)
-}
-
-// MarkTransmissionFailed marks the custody chain as failed transmission
-func (c *CustodyChainEntry) MarkTransmissionFailed(processorURL string, err error) {
-	c.ProcessorURL = processorURL
-	c.ProcessorSentAt = time.Now().UTC()
-	c.ProcessorStatus = "failed"
-	c.ProcessorError = err.Error()
-}
-
-// CalculateFileHashes calculates all standard hashes for a file
-func CalculateFileHashes(filePath string) (*EvidenceHashes, error) {
-	file, err := os.Open(filePath)
+// LogCommand logs a command execution to the custody chain command history.
+// Parameters:
+//   - id: Unique identifier for the command execution
+//   - command: Command name that was executed
+//   - args: Command-line arguments passed to the command
+//   - startTime: UTC timestamp when command started
+//   - endTime: UTC timestamp when command completed
+//   - exitCode: Exit code returned by the command
+//   - err: Error object if command failed (can be nil)
+//   - workingDirectory: Directory where the command was executed
+//   - targetResource: File or resource the command operated on
+func (c *CustodyChainEntry) LogCommand(id, command string, args []string, startTime, endTime time.Time, exitCode int, err error, workingDirectory, targetResource string) {
+	errMsg := ""
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+		errMsg = err.Error()
 	}
-	defer file.Close()
-
-	// Create hash writers
-	md5Hash := md5.New()
-	sha1Hash := sha1.New()
-	sha256Hash := sha256.New()
-
-	// Use MultiWriter to hash while reading
-	multiWriter := io.MultiWriter(md5Hash, sha1Hash, sha256Hash)
-
-	// Read and hash data
-	if _, err := io.Copy(multiWriter, file); err != nil {
-		return nil, fmt.Errorf("failed to hash file: %w", err)
+	cmd := CommandExecution{
+		ID:               id,
+		Command:          command,
+		Arguments:        args,
+		StartTime:        startTime,
+		EndTime:          endTime,
+		Duration:         endTime.Sub(startTime).String(),
+		ExitCode:         exitCode,
+		ErrorMessage:     errMsg,
+		WorkingDirectory: workingDirectory,
+		TargetResource:   targetResource,
 	}
-
-	hashes := &EvidenceHashes{
-		MD5:          hex.EncodeToString(md5Hash.Sum(nil)),
-		SHA1:         hex.EncodeToString(sha1Hash.Sum(nil)),
-		SHA256:       hex.EncodeToString(sha256Hash.Sum(nil)),
-		CalculatedAt: time.Now().UTC(),
-		Algorithm:    "MD5+SHA1+SHA256",
-	}
-
-	return hashes, nil
+	c.CommandHistory = append(c.CommandHistory, cmd)
 }
 
-// ToJSON serializes the custody chain entry to JSON
-func (c *CustodyChainEntry) ToJSON() ([]byte, error) {
-	return json.MarshalIndent(c, "", "  ")
+// LogError logs an error message to the custody chain.
+// Parameters:
+//   - operation: Name or identifier of the operation that failed
+//   - message: Error message to log
+//   - err: Error object (can be nil)
+func (c *CustodyChainEntry) LogError(operation, message string, err error) {
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
+	entry := LogEntry{
+		Timestamp: time.Now().UTC(),
+		Level:     LogLevelError,
+		Message:   message,
+		Details:   operation,
+		Error:     errMsg,
+	}
+	c.LogEntries = append(c.LogEntries, entry)
 }
 
-// FromJSON deserializes a custody chain entry from JSON
-func FromJSON(data []byte) (*CustodyChainEntry, error) {
-	var entry CustodyChainEntry
-	if err := json.Unmarshal(data, &entry); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal custody chain: %w", err)
+// LogInfo logs an informational message to the custody chain.
+// Parameters:
+//   - operation: Name or identifier of the operation being performed
+//   - message: Informational message to log
+func (c *CustodyChainEntry) LogInfo(operation, message string) {
+	entry := LogEntry{
+		Timestamp: time.Now().UTC(),
+		Level:     LogLevelInfo,
+		Message:   message,
+		Details:   operation,
 	}
-	return &entry, nil
+	c.LogEntries = append(c.LogEntries, entry)
 }
 
-// Validate validates the custody chain entry for completeness and integrity
-func (c *CustodyChainEntry) Validate() error {
-	if c.ID == "" {
-		return fmt.Errorf("custody chain ID is required")
+// LogWarning logs a warning message to the custody chain.
+// Parameters:
+//   - operation: Name or identifier of the operation being performed
+//   - message: Warning message to log
+func (c *CustodyChainEntry) LogWarning(operation, message string) {
+	entry := LogEntry{
+		Timestamp: time.Now().UTC(),
+		Level:     LogLevelWarning,
+		Message:   message,
+		Details:   operation,
 	}
-	if c.AgentType == "" {
-		return fmt.Errorf("agent type is required")
-	}
-	if c.AgentVersion == "" {
-		return fmt.Errorf("agent version is required")
-	}
-	if c.CaseID == "" {
-		return fmt.Errorf("case ID is required")
-	}
-	if c.SHA256Hash == "" {
-		return fmt.Errorf("SHA256 hash is required for integrity verification")
-	}
-	if len(c.CustodyHistory) == 0 {
-		return fmt.Errorf("custody history must have at least one entry")
-	}
-	return nil
+	c.LogEntries = append(c.LogEntries, entry)
 }
 
-// GenerateTimeline generates timeline entries from the evidence data
-func GenerateTimelineFromEvidence(pkg *EvidencePackage) []TimelineEntry {
-	timeline := make([]TimelineEntry, 0)
+// SetAgentHostname sets the hostname of the agent executing the custody chain.
+// This method allows updating the hostname after the custody chain entry has been created.
+// Parameters:
+//   - hostname: The hostname of the machine running the forensic agent
+func (c *CustodyChainEntry) SetAgentHostname(hostname string) {
+	c.AgentHostname = hostname
+}
 
-	// Add file timeline entries
-	for _, file := range pkg.Files {
-		// Created time
-		if !file.CreatedTime.IsZero() {
-			timeline = append(timeline, TimelineEntry{
-				ID:            uuid.New().String(),
-				Timestamp:     file.CreatedTime,
-				TimestampType: "created",
-				Source:        "file_system",
-				Description:   fmt.Sprintf("File created: %s", file.Filename),
-				ArtifactPath:  file.SourcePath,
-				ArtifactType:  "file",
-				Hash:          file.Hashes.SHA256,
-				Size:          file.FileSize,
-			})
-		}
-
-		// Modified time
-		if !file.ModifiedTime.IsZero() {
-			timeline = append(timeline, TimelineEntry{
-				ID:            uuid.New().String(),
-				Timestamp:     file.ModifiedTime,
-				TimestampType: "modified",
-				Source:        "file_system",
-				Description:   fmt.Sprintf("File modified: %s", file.Filename),
-				ArtifactPath:  file.SourcePath,
-				ArtifactType:  "file",
-				Hash:          file.Hashes.SHA256,
-				Size:          file.FileSize,
-			})
-		}
-
-		// Accessed time
-		if !file.AccessedTime.IsZero() {
-			timeline = append(timeline, TimelineEntry{
-				ID:            uuid.New().String(),
-				Timestamp:     file.AccessedTime,
-				TimestampType: "accessed",
-				Source:        "file_system",
-				Description:   fmt.Sprintf("File accessed: %s", file.Filename),
-				ArtifactPath:  file.SourcePath,
-				ArtifactType:  "file",
-				Hash:          file.Hashes.SHA256,
-				Size:          file.FileSize,
-			})
-		}
-	}
-
-	return timeline
+// SetAgentUser sets the username of the agent executing the custody chain.
+// This method allows updating the username after the custody chain entry has been created.
+// Parameters:
+//   - username: The username of the user running the forensic agent
+func (c *CustodyChainEntry) SetAgentUser(username string) {
+	c.AgentUser = username
 }

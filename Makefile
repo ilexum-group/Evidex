@@ -4,7 +4,7 @@
 
 # Go parameters
 GOCMD=go
-GOBUILD=$(GOCMD) build -mod=vendor
+GOBUILD=$(GOCMD) build -mod=vendor $(LDFLAGS)
 GOCLEAN=$(GOCMD) clean
 GOTEST=$(GOCMD) test -mod=vendor
 GOGET=$(GOCMD) get
@@ -17,8 +17,9 @@ BINARY_UNIX=$(BINARY_NAME)_unix
 # Build directory
 BUILD_DIR=build
 
-# Version
-VERSION=1.0.0
+# Version (read from version file)
+VERSION=$(shell cat version | tr -d '\n')
+LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 
 # Supported platforms (forensic tool must be portable)
 PLATFORMS := linux/amd64 linux/arm64 linux/arm darwin/amd64 darwin/arm64 windows/amd64 windows/arm64 freebsd/amd64 openbsd/amd64

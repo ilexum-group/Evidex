@@ -5,41 +5,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/ilexum-group/evidex/internal/sender"
 	"github.com/ilexum-group/evidex/pkg/models"
 )
-
-// createTestFile creates a temporary test file with specified size.
-func createTestFile(t *testing.T, size int) string {
-	tmpfile, err := os.CreateTemp("", "test-*.bin")
-	if err != nil {
-		t.Fatalf("Failed to create temp file: %v", err)
-	}
-
-	// Write test data
-	data := make([]byte, size)
-	for i := range data {
-		data[i] = byte(i % 256)
-	}
-
-	if _, err := tmpfile.Write(data); err != nil {
-		t.Fatalf("Failed to write test data: %v", err)
-	}
-
-	if err := tmpfile.Close(); err != nil {
-		t.Logf("Failed to close temp file: %v", err)
-	}
-
-	t.Cleanup(func() {
-		_ = os.Remove(tmpfile.Name())
-	})
-
-	return tmpfile.Name()
-}
 
 // TestSendEvidencePackage tests sending evidence package to endpoint.
 func TestSendEvidencePackage(t *testing.T) {
@@ -76,9 +46,8 @@ func TestSendEvidencePackage(t *testing.T) {
 
 	// Create test package
 	pkg := &models.EvidencePackage{
-		Logs:      []string{"Log entry 1", "Log entry 2"},
-		ServerURL: server.URL,
-		Version:   "1.0",
+		Files:        []*models.FileEvidence{},
+		CustodyChain: &models.CustodyChainEntry{ID: "test-id"},
 	}
 
 	// Send package
@@ -89,62 +58,15 @@ func TestSendEvidencePackage(t *testing.T) {
 	}
 }
 
-// TestSendEvidenceFile tests sending evidence file to endpoint.
-func TestSendEvidenceFile(t *testing.T) {
-	// Create test file
-	testFilePath := createTestFile(t, 1024)
-
-	// Create mock server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			t.Errorf("Expected POST request, got %s", r.Method)
-		}
-
-		// Verify authorization header
-		if r.Header.Get("Authorization") == "" {
-			t.Error("Missing authorization header")
-		}
-
-		w.WriteHeader(http.StatusOK)
-		_, _ = io.WriteString(w, `{"status":"success"}`)
-	}))
-	defer server.Close()
-
-	// Send file
-	meta := map[string]string{"filename": filepath.Base(testFilePath)}
-	snd := sender.NewSender(server.URL, "test-token")
-	err := snd.SendEvidenceFile(testFilePath, meta)
-	if err != nil {
-		t.Fatalf("SendEvidenceFile() error = %v", err)
-	}
-}
-
 // TestSendEvidencePackageInvalidEndpoint tests sending to invalid endpoint.
 func TestSendEvidencePackageInvalidEndpoint(t *testing.T) {
-	pkg := &models.EvidencePackage{
-		Version: "1.0",
-	}
+	pkg := &models.EvidencePackage{}
 
 	// Try to send to invalid URL
 	snd := sender.NewSender("http://invalid-url-that-does-not-exist:9999", "token")
 	err := snd.SendEvidencePackage(pkg)
 	if err == nil {
 		t.Error("Expected error for invalid endpoint")
-	}
-}
-
-// TestSendEvidenceFileNotFound tests sending non-existent file.
-func TestSendEvidenceFileNotFound(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	meta := map[string]string{}
-	snd := sender.NewSender(server.URL, "token")
-	err := snd.SendEvidenceFile("/non/existent/file.txt", meta)
-	if err == nil {
-		t.Error("Expected error for non-existent file")
 	}
 }
 
@@ -156,9 +78,7 @@ func TestSendEvidencePackageServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	pkg := &models.EvidencePackage{
-		Version: "1.0",
-	}
+	pkg := &models.EvidencePackage{}
 
 	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidencePackage(pkg)
@@ -170,11 +90,11 @@ func TestSendEvidencePackageServerError(t *testing.T) {
 // TestSendEvidencePackageWithLogs tests sending package with logs.
 func TestSendEvidencePackageWithLogs(t *testing.T) {
 	// Create mock server
-	var receivedLogs []string
+	var receivedLogs []models.LogEntry
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var pkg models.EvidencePackage
 		_ = json.NewDecoder(r.Body).Decode(&pkg)
-		receivedLogs = pkg.Logs
+		receivedLogs = pkg.CustodyChain.LogEntries
 
 		w.WriteHeader(http.StatusOK)
 		_, _ = io.WriteString(w, `{"status":"success"}`)
@@ -182,13 +102,13 @@ func TestSendEvidencePackageWithLogs(t *testing.T) {
 	defer server.Close()
 
 	// Create test package with logs
-	logs := []string{
-		"<134>1 2026-01-06T10:00:00Z hostname evidex 1234 - [meta@1] Log entry 1",
-		"<134>1 2026-01-06T10:00:01Z hostname evidex 1234 - [meta@1] Log entry 2",
+	logs := []models.LogEntry{
+		{Level: "INFO", Message: "Log entry 1"},
+		{Level: "INFO", Message: "Log entry 2"},
 	}
 	pkg := &models.EvidencePackage{
-		Logs:    logs,
-		Version: "1.0",
+		Files:        []*models.FileEvidence{},
+		CustodyChain: &models.CustodyChainEntry{ID: "test-id", LogEntries: logs},
 	}
 
 	snd := sender.NewSender(server.URL, "test-token")
@@ -199,33 +119,6 @@ func TestSendEvidencePackageWithLogs(t *testing.T) {
 
 	if len(receivedLogs) != 2 {
 		t.Errorf("Expected 2 logs received, got %d", len(receivedLogs))
-	}
-}
-
-// TestSendEvidenceFileWithMetadata tests sending file with metadata.
-func TestSendEvidenceFileWithMetadata(t *testing.T) {
-	testFilePath := createTestFile(t, 512)
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		_, _ = io.WriteString(w, `{"status":"success"}`)
-	}))
-	defer server.Close()
-
-	meta := map[string]string{
-		"file_size": "512",
-		"file_hash": "abc123",
-	}
-
-	snd := sender.NewSender(server.URL, "token")
-	err := snd.SendEvidenceFile(testFilePath, meta)
-	if err != nil {
-		t.Fatalf("SendEvidenceFile() with metadata error = %v", err)
 	}
 }
 
@@ -246,9 +139,7 @@ func TestSendHTTPRequest(t *testing.T) {
 	}))
 	defer server.Close()
 
-	pkg := &models.EvidencePackage{
-		Version: "1.0",
-	}
+	pkg := &models.EvidencePackage{}
 	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
@@ -275,11 +166,15 @@ func TestSendEvidencePackageWithComplexPayload(t *testing.T) {
 
 	// Create complex package
 	pkg := &models.EvidencePackage{
-		Version: "1.0",
-		Logs: []string{
-			"Log 1",
-			"Log 2",
-			"Log 3",
+		Files: []*models.FileEvidence{},
+		CustodyChain: &models.CustodyChainEntry{
+			ID:           "test-id",
+			AgentVersion: "1.0",
+			LogEntries: []models.LogEntry{
+				{Level: "INFO", Message: "Log 1"},
+				{Level: "INFO", Message: "Log 2"},
+				{Level: "INFO", Message: "Log 3"},
+			},
 		},
 	}
 
@@ -292,11 +187,11 @@ func TestSendEvidencePackageWithComplexPayload(t *testing.T) {
 	// Verify received package
 	select {
 	case received := <-receivedPackage:
-		if received.Version != "1.0" {
-			t.Errorf("Expected version 1.0, got %s", received.Version)
+		if received.CustodyChain.AgentVersion != "1.0" {
+			t.Errorf("Expected version 1.0, got %s", received.CustodyChain.AgentVersion)
 		}
-		if len(received.Logs) != 3 {
-			t.Errorf("Expected 3 logs, got %d", len(received.Logs))
+		if len(received.CustodyChain.LogEntries) != 3 {
+			t.Errorf("Expected 3 logs, got %d", len(received.CustodyChain.LogEntries))
 		}
 	case <-make(chan struct{}):
 		t.Error("Failed to receive package")
@@ -316,78 +211,16 @@ func TestSendEvidencePackageResponseValidation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	pkg := &models.EvidencePackage{Version: "1.0"}
+	pkg := &models.EvidencePackage{
+		Files:        []*models.FileEvidence{},
+		CustodyChain: &models.CustodyChainEntry{ID: "test-id", AgentVersion: "1.0"},
+	}
 
 	// This should succeed
 	snd := sender.NewSender(server.URL, "token")
 	err := snd.SendEvidencePackage(pkg)
 	if err != nil {
 		t.Fatalf("Expected successful response, got error: %v", err)
-	}
-}
-
-// TestChunkSizeConstant removed - cannot access private constants from external package.
-
-// TestSendLargeFile tests sending a large file.
-func TestSendLargeFile(t *testing.T) {
-	// Create a smaller test file (actual chunking would be >64MB)
-	testFilePath := createTestFile(t, 100*1024) // 100KB
-
-	requestCount := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestCount++
-
-		if r.Method != "POST" {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Verify headers
-		if r.Header.Get("Authorization") == "" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	meta := map[string]string{"chunk_test": "true"}
-	snd := sender.NewSender(server.URL, "token")
-	err := snd.SendEvidenceFile(testFilePath, meta)
-	if err != nil {
-		t.Fatalf("SendEvidenceFile() error = %v", err)
-	}
-
-	if requestCount == 0 {
-		t.Error("Expected at least one HTTP request")
-	}
-}
-
-// TestSendEvidenceFileResponseParsing tests response parsing.
-func TestSendEvidenceFileResponseParsing(t *testing.T) {
-	testFilePath := createTestFile(t, 256)
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-
-		response := map[string]interface{}{
-			"status":      "success",
-			"file_id":     "12345",
-			"size_bytes":  256,
-			"received_at": "2026-01-06T10:00:00Z",
-		}
-
-		_ = json.NewEncoder(w).Encode(response)
-	}))
-	defer server.Close()
-
-	meta := map[string]string{}
-	snd := sender.NewSender(server.URL, "token")
-	err := snd.SendEvidenceFile(testFilePath, meta)
-	if err != nil {
-		t.Fatalf("SendEvidenceFile() error = %v", err)
 	}
 }
 
@@ -400,8 +233,9 @@ func BenchmarkSendEvidencePackage(b *testing.B) {
 	defer server.Close()
 
 	pkg := &models.EvidencePackage{
-		Version: "1.0",
-		Logs:    []string{"Log 1", "Log 2", "Log 3"},
+
+		Files:        []*models.FileEvidence{},
+		CustodyChain: &models.CustodyChainEntry{ID: "test-id", LogEntries: []models.LogEntry{{Level: "INFO", Message: "Log 1"}, {Level: "INFO", Message: "Log 2"}, {Level: "INFO", Message: "Log 3"}}},
 	}
 
 	snd := sender.NewSender(server.URL, "token")

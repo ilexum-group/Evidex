@@ -1,51 +1,74 @@
+// Package generic provides metadata extraction for generic file formats including executables, archives, and documents.
 package generic
 
 import (
 	"bufio"
 	"os"
+	"time"
 	"unicode/utf8"
+
+	"github.com/ilexum-group/evidex/internal/utils"
+	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// TextExtractor implements metadata extraction for text files
+// TextExtractor implements metadata extraction for text files.
 type TextExtractor struct{}
 
-// NewTextExtractor creates a new text extractor
+// NewTextExtractor creates a new text extractor.
 func NewTextExtractor() *TextExtractor {
 	return &TextExtractor{}
 }
 
-// CanHandle checks if the file is a text file
-func (e *TextExtractor) CanHandle(filePath string) bool {
+// CanHandle checks if the file is a text file.
+func (e *TextExtractor) CanHandle(_ string) bool {
 	// This is a fallback extractor, it can handle any file
 	// but should be registered last in the registry
 	return true
 }
 
-// Extract implements MetadataExtractor interface
-func (e *TextExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractDocument(filePath), nil
+// Extract implements MetadataExtractor interface.
+func (e *TextExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractDocument(filePath, logCmd), nil
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *TextExtractor) GetType() string {
 	return "text/plain"
 }
 
-// ExtractDocument extracts text file metadata
-func (e *TextExtractor) ExtractDocument(filePath string) map[string]string {
-	return ProbeText(filePath)
+// ExtractDocument extracts text file metadata.
+func (e *TextExtractor) ExtractDocument(filePath string, logCmd models.CommandLogger) map[string]string {
+	return ProbeText(filePath, logCmd)
 }
 
-// ProbeText attempts to detect if a file is text and count lines/chars
-func ProbeText(filePath string) map[string]string {
+// ProbeText attempts to detect if a file is text and count lines/chars.
+func ProbeText(filePath string, logCmd models.CommandLogger) map[string]string {
 	metadata := make(map[string]string)
 
-	file, err := os.Open(filePath)
+	startTime := time.Now()
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
+	endTime := time.Now()
+	exitCode := 0
+	if err != nil {
+		exitCode = 1
+	}
+	if logCmd != nil {
+		logCmd(utils.GenerateRandomID(), "os.Open", []string{filePath, "text probe"}, startTime, endTime, exitCode, err, "", filePath)
+	}
 	if err != nil {
 		return metadata
 	}
 	defer func() {
-		_ = file.Close()
+		startTime := time.Now()
+		err := file.Close()
+		endTime := time.Now()
+		exitCode := 0
+		if err != nil {
+			exitCode = 1
+		}
+		if logCmd != nil {
+			logCmd(utils.GenerateRandomID(), "file.Close", []string{filePath, "text probe"}, startTime, endTime, exitCode, err, "", filePath)
+		}
 	}()
 
 	// Read first few bytes to determine if it's text

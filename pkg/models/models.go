@@ -6,54 +6,14 @@ import (
 	"time"
 )
 
-// EvidencePackage represents the complete forensic evidence package
+// EvidencePackage represents the complete forensic evidence package.
 type EvidencePackage struct {
-	Manifest       *ChainOfCustodyManifest `json:"manifest"`
-	Files          []*FileEvidence         `json:"files"`
-	AcquisitionLog *AcquisitionLog         `json:"acquisition_log"`
-	SystemContext  *SystemContext          `json:"system_context"`
-	CreatedAt      time.Time               `json:"created_at"`
-	Version        string                  `json:"version"`
-	Logs           []string                `json:"logs"`       // RFC 5424 syslog entries
-	ServerURL      string                  `json:"server_url"` // Remote endpoint for transmission
-	AuthToken      string                  `json:"auth_token"` // Bearer token for server authentication
-
-	// Custody Chain - Complete digital evidence custody tracking
-	CustodyChain *CustodyChainEntry `json:"custody_chain"`
+	CaseID       string             `json:"case_id,omitempty"` // Case ID for grouping evidence packages
+	Files        []*FileEvidence    `json:"files"`
+	CustodyChain *CustodyChainEntry `json:"custody_chain"` // Custody Chain - Complete digital evidence custody tracking
 }
 
-// ChainOfCustodyManifest records all actions and modifications to the evidence
-type ChainOfCustodyManifest struct {
-	ID                 string      `json:"id"`                  // Unique evidence package identifier
-	CreatedAt          time.Time   `json:"created_at"`          // Package creation timestamp
-	CreatedByUser      string      `json:"created_by_user"`     // User who initiated acquisition
-	CreatedByHostname  string      `json:"created_by_hostname"` // Hostname where binary ran
-	Signature          string      `json:"signature"`           // HMAC signature of the package
-	FileCount          int         `json:"file_count"`          // Total files in package
-	TotalSize          int64       `json:"total_size"`          // Total size in bytes
-	CompressionMethod  string      `json:"compression_method"`  // Compression algorithm used
-	HashAlgorithm      string      `json:"hash_algorithm"`      // Primary hash algorithm (SHA-256, SHA-512)
-	SecondaryAlgorithm string      `json:"secondary_algorithm"` // Secondary hash (optional)
-	AcquisitionMethod  string      `json:"acquisition_method"`  // read-only, file copy, etc.
-	CaseID             string      `json:"case_id"`             // Case identifier for correlation
-	ExaminersNotes     string      `json:"examiners_notes"`     // Additional context
-	Integrity          string      `json:"integrity"`           // Integrity status (verified, unverified)
-	Custodians         []Custodian `json:"custodians"`          // Chain of custody history
-	Hash               string      `json:"hash"`                // Hash of the entire manifest
-}
-
-// Custodian tracks who had custody of evidence and when
-type Custodian struct {
-	Name      string    `json:"name"`      // Custodian name
-	Role      string    `json:"role"`      // Role/title
-	Signature string    `json:"signature"` // Digital signature
-	Action    string    `json:"action"`    // received, transferred, archived
-	Timestamp time.Time `json:"timestamp"` // When action occurred
-	Location  string    `json:"location"`  // Physical or logical location
-	Notes     string    `json:"notes"`     // Optional notes about custody action
-}
-
-// FileEvidence represents a single evidence file with complete metadata
+// FileEvidence represents a single evidence file with complete metadata.
 type FileEvidence struct {
 	SourcePath      string            `json:"source_path"`                // Original file path
 	RelativePath    string            `json:"relative_path"`              // Path within evidence package
@@ -74,12 +34,10 @@ type FileEvidence struct {
 	VideoMetadata   *VideoMetadata    `json:"video_metadata"`             // Codec info for videos
 	GenericMetadata map[string]string `json:"generic_metadata,omitempty"` // Other file types
 	AcquisitionTime time.Time         `json:"acquisition_time"`           // When file was acquired
-	Verified        bool              `json:"verified"`                   // Hash verification status
-	VerificationErr string            `json:"verification_err"`           // Verification error if any
 	FileContent     []byte            `json:"file_content"`               // File content for transmission (read-only, never modifies source)
 }
 
-// FileHashes contains cryptographic hashes for integrity verification
+// FileHashes contains cryptographic hashes for integrity verification.
 type FileHashes struct {
 	MD5    string `json:"md5"`    // MD5 hash (128-bit) - for compatibility with legacy systems
 	SHA1   string `json:"sha1"`   // SHA1 hash (160-bit) - for legacy compatibility
@@ -87,7 +45,7 @@ type FileHashes struct {
 	SHA512 string `json:"sha512"` // SHA512 hash (512-bit) - secondary hash (optional)
 }
 
-// ImageMetadata contains image-specific metadata
+// ImageMetadata contains image-specific metadata.
 // Reduced to the fields we currently populate.
 type ImageMetadata struct {
 	Format string `json:"format"`
@@ -95,7 +53,7 @@ type ImageMetadata struct {
 	Height int    `json:"height"`
 }
 
-// GPSCoordinates represents GPS location data
+// GPSCoordinates represents GPS location data.
 type GPSCoordinates struct {
 	Latitude  float64   `json:"latitude"`
 	Longitude float64   `json:"longitude"`
@@ -103,7 +61,7 @@ type GPSCoordinates struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-// VideoMetadata contains video-specific metadata
+// VideoMetadata contains video-specific metadata.
 type VideoMetadata struct {
 	Format          string    `json:"format"`            // Container format (MP4, MOV, AVI, etc.)
 	Duration        string    `json:"duration"`          // Duration (HH:MM:SS)
@@ -125,27 +83,7 @@ type VideoMetadata struct {
 	Copyright       string    `json:"copyright"`         // Copyright notice
 }
 
-// AcquisitionLog records all operations during evidence acquisition
-type AcquisitionLog struct {
-	StartTime      time.Time  `json:"start_time"`      // Acquisition start
-	EndTime        time.Time  `json:"end_time"`        // Acquisition end
-	Duration       string     `json:"duration"`        // Total duration
-	OperationCount int        `json:"operation_count"` // Total operations
-	ErrorCount     int        `json:"error_count"`     // Total errors
-	WarningCount   int        `json:"warning_count"`   // Total warnings
-	Entries        []LogEntry `json:"entries"`         // Detailed log entries
-}
-
-// LogEntry represents a single log entry
-type LogEntry struct {
-	Timestamp time.Time `json:"timestamp"`
-	Level     string    `json:"level"` // INFO, WARNING, ERROR
-	Message   string    `json:"message"`
-	Details   string    `json:"details"`
-	Error     string    `json:"error"`
-}
-
-// SystemContext records system information during acquisition
+// SystemContext records system information during acquisition.
 type SystemContext struct {
 	Hostname         string    `json:"hostname"`          // System hostname
 	Username         string    `json:"username"`          // User running acquisition
@@ -159,15 +97,4 @@ type SystemContext struct {
 	BinaryPath       string    `json:"binary_path"`       // Path to binary
 	BinaryHash       string    `json:"binary_hash"`       // Hash of binary itself
 	WorkingDirectory string    `json:"working_directory"` // CWD during execution
-}
-
-// VerificationReport provides integrity verification results
-type VerificationReport struct {
-	Timestamp      time.Time `json:"timestamp"`
-	VerifiedFiles  int       `json:"verified_files"`
-	FailedFiles    int       `json:"failed_files"`
-	SkippedFiles   int       `json:"skipped_files"`
-	VerificationOK bool      `json:"verification_ok"`
-	Failures       []string  `json:"failures"`
-	Details        string    `json:"details"`
 }

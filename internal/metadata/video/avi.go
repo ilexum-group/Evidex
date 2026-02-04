@@ -1,45 +1,53 @@
+// Package video provides metadata extraction for video file formats including MP4, AVI, MKV, MOV, and WebM.
 package video
 
 import (
 	"os"
+	"time"
 
+	"github.com/ilexum-group/evidex/internal/utils"
 	"github.com/ilexum-group/evidex/pkg/models"
 )
 
-// AVIExtractor implements metadata extraction for AVI videos
+// AVIExtractor implements metadata extraction for AVI videos.
 type AVIExtractor struct{}
 
-// NewAVIExtractor creates a new AVI extractor
+// NewAVIExtractor creates a new AVI extractor.
 func NewAVIExtractor() *AVIExtractor {
 	return &AVIExtractor{}
 }
 
-// CanHandle checks if the file is an AVI video
+// CanHandle checks if the file is an AVI video.
 func (e *AVIExtractor) CanHandle(filePath string) bool {
 	return IsAVI(filePath)
 }
 
-// Extract implements MetadataExtractor interface
-func (e *AVIExtractor) Extract(filePath string) (interface{}, error) {
-	return e.ExtractVideo(filePath)
+// Extract implements MetadataExtractor interface.
+func (e *AVIExtractor) Extract(filePath string, logCmd models.CommandLogger) (interface{}, error) {
+	return e.ExtractVideo(filePath, logCmd)
 }
 
-// GetType returns the extractor type
+// GetType returns the extractor type.
 func (e *AVIExtractor) GetType() string {
 	return "video/x-msvideo"
 }
 
-// ExtractVideo extracts AVI-specific metadata
-func (e *AVIExtractor) ExtractVideo(filePath string) (*models.VideoMetadata, error) {
+// ExtractVideo extracts AVI-specific metadata.
+func (e *AVIExtractor) ExtractVideo(filePath string, logCmd models.CommandLogger) (*models.VideoMetadata, error) {
+	if logCmd != nil {
+		startTime := time.Now()
+		logCmd(utils.GenerateRandomID(), "video.ExtractAVI", []string{filePath}, startTime, time.Now(), 0, nil, "", filePath)
+	}
+
 	metadata := &models.VideoMetadata{
 		Format: "AVI",
 	}
 	return metadata, nil
 }
 
-// IsAVI checks if a file is an AVI video by magic bytes
+// IsAVI checks if a file is an AVI video by magic bytes.
 func IsAVI(filePath string) bool {
-	file, err := os.Open(filePath)
+	file, err := os.Open(filePath) // #nosec G304 - filepath is user-provided evidence path in forensic tool
 	if err != nil {
 		return false
 	}

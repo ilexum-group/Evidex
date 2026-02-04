@@ -6,7 +6,7 @@ Evidex is a forensic evidence acquisition tool that collects files and comprehen
 
 ## Purpose
 
-Evidex acquires forensic evidence from files and directories, extracting detailed metadata from images (EXIF, GPS, XMP), videos (codecs, duration, resolution), and documents. All evidence is packaged with cryptographic hashes (SHA-256/SHA-512) and transmitted securely to remote analysis servers for processing.
+Evidex acquires forensic evidence from files and directories, extracting detailed metadata from images (EXIF, GPS, XMP), videos (codecs, duration, resolution), and documents. All evidence is packaged with cryptographic hashes (MD5, SHA1, SHA256) and transmitted securely to remote analysis servers for processing. All operations are performed in-memory without local storage.
 
 ## Problem It Solves
 
@@ -15,8 +15,9 @@ Digital forensic investigations require collecting evidence without altering sou
 - ✅ **Complete Evidence Package**: Transmits file content and comprehensive metadata to remote servers
 - ✅ **Zero Modifications**: Source files are NEVER modified, deleted, or moved
 - ✅ **Read-Only Access**: All operations use read-only file handles
-- ✅ **Cryptographic Integrity**: SHA-256 and SHA-512 hashing for verification
-- ✅ **Complete Chain of Custody**: Immutable custody documentation and audit trail
+- ✅ **Cryptographic Integrity**: MD5, SHA1, and SHA256 hashing for verification
+- ✅ **Complete Chain of Custody**: Immutable custody documentation with command execution history
+- ✅ **Memory-Only Processing**: No local storage, direct transmission to server
 - ✅ **Remote Analysis Ready**: Transmit metadata packages to analysis servers via secure HTTP endpoints
 - ✅ **Portable**: Cross-platform (Linux, macOS, Windows, FreeBSD, OpenBSD)
 - ✅ **Auditable**: Open source, no external dependencies
@@ -53,51 +54,25 @@ make build-all
 
 ### Basic Usage
 
-#### Production Mode (Recommended)
-
-In production mode, evidence is transmitted directly to remote servers **without writing to local disk**:
+Evidex operates in memory-only mode, transmitting evidence directly to remote servers without local storage:
 
 ```bash
 # Acquire and transmit evidence to analysis server
-./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN image.jpg
+./build/evidex --server https://analysis.server.com/api/evidence --token YOUR_TOKEN --case-id CASE-2026-001 image.jpg
 
 # Process multiple files with case ID
-./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -case-id CASE-2026-001 file1.jpg file2.mp4
+./build/evidex --server https://analysis.server.com/api/evidence --token YOUR_TOKEN --case-id CASE-2026-001 file1.jpg file2.mp4
 
 # Process entire directory recursively
-./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -case-id CASE-2026-001 -r /path/to/folder
-
-# With case ID and examiner notes
-./build/evidex -send -server https://analysis.server.com/api/evidence -token YOUR_TOKEN -case-id CASE-2026-001 -notes "Initial acquisition" evidence.jpg
+./build/evidex --server https://analysis.server.com/api/evidence --token YOUR_TOKEN --case-id CASE-2026-001 -r /path/to/folder
 ```
 
-**Production Mode Benefits**:
-- No local storage required (uses temporary directory, auto-cleaned)
+**Key Benefits**:
+- No local storage required (memory-only processing)
 - Direct transmission to analysis server
 - Minimal forensic footprint on acquisition system
+- Complete command execution logging
 - Ideal for field operations
-
-#### Debug Mode (Local Storage Only)
-
-In debug mode, evidence is saved locally only (no transmission):
-
-```bash
-# Save evidence package locally
-./build/evidex -o ./evidence image.jpg
-
-# Process multiple files with local storage
-./build/evidex -o ./evidence photo1.jpg video1.mp4 document.pdf
-
-# Recursively process directory with local storage
-./build/evidex -o ./evidence -r /path/to/folder
-
-# Use SHA-512 hashing
-./build/evidex -o ./evidence -hash SHA-512 file.jpg
-```
-
-**Debug Mode Benefits**:
-- Local copy for validation
-- Offline operation support
 - Evidence package inspection
 - Testing and development
 
@@ -108,71 +83,46 @@ In debug mode, evidence is saved locally only (no transmission):
 ### Command-Line Options
 
 ```
--h, -help              Show help message
--v, -version           Show version information
--o, -output DIR        Output directory for evidence package (required for debug mode, optional with -send)
--r, -recursive         Recursively process directories
--hash ALGORITHM        Hash algorithm: SHA256 (default), SHA512
--case-id ID            Case identifier for correlation (e.g., CASE-2026-001)
--notes NOTES          Examiner notes for chain of custody
--json                  Export JSON metadata (default: true)
--csv                   Export CSV file manifest
--hashes                Create HASHES.txt file for verification
--report                Create integrity report
--verify                Verify hashes after acquisition (default: true)
--send                  Send evidence package to remote server (production mode)
--server URL            Remote server endpoint for transmission (required with -send)
--token TOKEN           Authentication token for server communication
+-h, --help              Show help message
+-v, --version           Show version information
+-r, --recursive         Recursively process directories
+--case-id ID            Case identifier for correlation (required)
+--server URL            Remote server endpoint for transmission (required)
+--token TOKEN           Authentication token for server communication (required)
 ```
 
-**Mode Selection**:
-- **Production Mode**: Use `-send -server URL -token TOKEN` (transmits to server, no local storage)
-- **Debug Mode**: Use `-o DIR` (saves locally only, no transmission)
-- **Note**: `-send` and `-o` are mutually exclusive
+**Required Options**:
+- `--server URL` - Analysis server endpoint URL
+- `--token TOKEN` - Authentication token
+- `--case-id ID` - Case identifier for correlation
+- At least one file or directory path
+
+**Notes**:
+- All hashes (MD5, SHA1, SHA256) are calculated automatically
+- All file operations and commands are logged in the custody chain
+- Evidence is transmitted directly to server without local storage
 
 ### Remote Transmission
 
-Evidex transmits complete evidence packages (files + metadata) directly to remote analysis server endpoints:
+Evidex transmits complete evidence packages directly to analysis servers:
 
 ```bash
-# Production mode: Direct transmission without local storage
-./build/evidex -send -server https://evidence-analysis.server.com:8443/api/evidence -token YOUR_TOKEN image.jpg
-
-# The tool will:
-# 1. Read files in read-only mode (never modifies source)
-# 2. Extract comprehensive metadata from all file types
-# 2. Create metadata package with complete chain of custody
-# 3. Include RFC 5424 structured logging with metadata details
-# 4. Intelligently chunk large metadata sets
-# 5. Transmit securely to analysis endpoint
-# 6. Verify successful transmission
-# 7. Source files remain unmodified at origin
+# Direct transmission without local storage
+./build/evidex --server https://analysis.server.com/api/evidence --token YOUR_TOKEN --case-id CASE-2026-001 image.jpg
 ```
 
-**Evidence Package Transmitted**:
-- **Complete file content** (binary data, base64-encoded in JSON)
-- File system metadata (permissions, timestamps, ownership, size)
-- Image metadata (EXIF, XMP, IPTC, GPS, color profiles)
-- Video metadata (codecs, resolution, bitrate, duration, frame rate)
-- Document metadata (author, creation date, modification history)
-- Archive metadata (compression type, member information)
-- Cryptographic hashes (SHA-256, SHA-512)
-- Chain of custody information
-- RFC 5424 structured acquisition logs
+**Transmitted Data**:
+- Complete file content (base64-encoded)
+- All metadata (filesystem, EXIF, video codecs, etc.)
+- Cryptographic hashes (MD5, SHA1, SHA256, SHA512)
+- Chain of custody with command history
+- RFC 5424 structured logs
 
-### Comprehensive Logging
+### Logging
 
-All operations are logged using RFC 5424 syslog format with structured data:
-
-- **Log Output**: Real-time console output + in-memory buffer
-- **Format**: RFC 5424 compliant with metadata
-- **Transmission**: Logs included in evidence package for server
-- **Levels**: Debug, Info, Warning, Error
-- **Metadata**: Rich contextual information in each log entry
-
-Example log entry:
+RFC 5424 structured logging with metadata:
 ```
-<134>1 2026-01-06T10:30:45.123456Z hostname evidex 1234 - [meta@1 file_path="/path/to/file" file_size="1024"] Successfully acquired file
+<134>1 2026-01-06T10:30:45Z hostname evidex 1234 - [meta@1 file_path="/path/to/file"] Successfully acquired file
 ```
 
 ## Building
@@ -180,50 +130,28 @@ Example log entry:
 ### Prerequisites
 - Go 1.25 or higher
 - Make utility
-- Git (for version control)
 
-### Build Targets
+### Build Commands
 
 ```bash
 # Current platform
 make build
 
-# Linux
-make build-linux          # Build for Linux (amd64, arm64)
-make build-linux-amd64    # Linux x86_64
-make build-linux-arm64    # Linux ARM 64-bit
-
-# macOS
-make build-darwin         # Build for macOS (amd64, arm64)
-make build-darwin-amd64   # macOS Intel
-make build-darwin-arm64   # macOS Apple Silicon
-
-# Windows
-make build-windows        # Build for Windows (amd64, arm64)
-make build-windows-amd64  # Windows x86_64
-make build-windows-arm64  # Windows ARM 64-bit
-
-# Other Unix
+# Specific platforms
+make build-linux          # Linux (amd64, arm64)
+make build-darwin         # macOS (amd64, arm64)
+make build-windows        # Windows (amd64, arm64)
 make build-freebsd-amd64  # FreeBSD
 make build-openbsd-amd64  # OpenBSD
 
 # All platforms
-make build-all            # Build all supported platforms
+make build-all
 
-# Release archives
-make release              # Create compressed packages
-```
-
-### Other Targets
-
-```bash
-make deps      # Download dependencies
+# Other targets
 make test      # Run tests
 make clean     # Clean build artifacts
 make fmt       # Format code
-make lint      # Lint code
 make vendor    # Update vendor directory
-make help      # Show all targets
 ```
 
 ## Development
@@ -419,101 +347,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-## Documentation
-
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Comprehensive technical design
-- [cmd/evidex/README.md](cmd/evidex/README.md) - CLI documentation
-- [internal/README.md](internal/README.md) - Module documentation
-
 ## Digital Evidence Custody Chain
 
-Evidex implements a comprehensive digital evidence custody chain that meets forensic standards:
+Evidex implements a comprehensive digital evidence custody chain:
 
-### Custody Chain Features
+**Features:**
+- MD5, SHA1, SHA256 hash algorithms for integrity verification
+- Complete command logging during collection
+- Custody transfer tracking with timestamps
+- Agent identification (hostname, username, version)
+- Automatic timeline generation from file timestamps
+- Integration with Processor for analysis
 
-**Standardized Hash Algorithms:**
-- MD5 (128-bit) - Legacy compatibility
-- SHA1 (160-bit) - Legacy compatibility  
-- SHA256 (256-bit) - Primary integrity verification
-- All hashes calculated automatically during evidence collection
-
-**Complete Command Logging:**
-- Every command executed during collection is logged
-- Includes command name, arguments, timestamps, exit codes
-- Command output sizes and error messages tracked
-- Working directory and environment variables recorded
-
-**Custody Transfer Tracking:**
-- Initial collection by agent
-- Transmission to Processor
-- Each transfer includes timestamp, custodian details, verification hash
-- Digital signatures supported for legal compliance
-
-**Agent Identification:**
-- Agent type: "evidex"
-- Agent version, hostname, and username
-- System context (OS, timezone, binary hash)
-- Case ID for correlation across evidence sources
-
-**Processor Integration:**
-- Automatic transmission to Processor with custody chain
-- Receipt confirmation with Processor ID
-- TimeAnalysis and Report references tracked
-- Failed transmission handling with error logging
-
-**Timeline Generation:**
-- Automatic timeline extraction from file timestamps
-- Created, modified, accessed timestamps
-- Formatted for TimeAnalysis in Processor UI
-- Sortable, filterable forensic timeline
-
-### Custody Chain Structure
-
-```go
-type CustodyChainEntry struct {
-    ID             string                 // Unique UUID
-    AgentType      string                 // "evidex"
-    AgentVersion   string                 // Version number
-    CaseID         string                 // Case correlation ID
-    MD5Hash        string                 // MD5 of evidence package
-    SHA1Hash       string                 // SHA1 of evidence package  
-    SHA256Hash     string                 // SHA256 of evidence package (primary)
-    LogEntries     []string               // RFC 5424 log entries
-    CommandHistory []CommandExecution     // All commands executed
-    CustodyHistory []CustodyTransfer      // Complete custody chain
-    ProcessorURL   string                 // Processor endpoint
-    TimeAnalysisRef string                // Timeline report ID
-    ReportRef      string                 // Forensic report ID
-}
-```
-
-### Usage Example
-
-The custody chain is automatically integrated when collecting evidence:
-
-```go
-// Create custody chain
-chain, _ := models.NewCustodyChainEntry(caseID, version)
-
-// Add commands as they execute
-chain.AddCommandExecution(CommandExecution{
-    Command:   "exiftool",
-    Arguments: []string{"-json", filepath},
-    StartTime: time.Now(),
-    // ... other fields
-})
-
-// Add logs from existing logger
-chain.AddLogEntry(logEntry)
-
-// Finalize with hashes
-chain.Finalize(evidenceData, fileCount)
-
-// Mark transmission to Processor
-chain.MarkTransmitted(processorURL, response)
-```
-
-The custody chain is included in the EvidencePackage JSON sent to Processor.
+**Usage:**
+The custody chain is automatically created and maintained during evidence collection. All operations are logged and included in the transmitted evidence package.
 
 ## Contributing
 
@@ -532,10 +379,7 @@ Designed and implemented as a professional forensic evidence acquisition tool.
 
 ## Support
 
-For issues, questions, or forensic consultation:
-- Review ARCHITECTURE.md for design details
-- Examine acquisition_log.json in generated packages
-- Review source code for implementation details
+For issues or questions, open an issue on GitHub.
 
 ## Disclaimer
 
